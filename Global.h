@@ -67,6 +67,11 @@
 #include <boost/program_options.hpp>
 #include <boost/thread.hpp>
 #include <boost/unordered_set.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/weak_ptr.hpp>
+
+using boost::shared_ptr;
+using boost::weak_ptr;
 
 #ifdef ANDROID
 #include <android/log.h>

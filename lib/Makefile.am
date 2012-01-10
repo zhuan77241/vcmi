@@ -24,6 +24,8 @@ libvcmi_la_SOURCES = \
 	CCreatureSet.h \
 	CDefObjInfoHandler.cpp \
 	CDefObjInfoHandler.h \
+	CFileSystemHandler.cpp \
+	CFileSystemHandler.h \
 	CFileUtility.cpp \
 	CFileUtility.h \
 	CGameInterface.cpp \
