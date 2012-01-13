@@ -39,21 +39,21 @@ public:
 };
 
 // Specifies the resource type
-namespace EResourceType
+namespace EResType
 {
-	enum EResourceType
+	enum EResType
 	{
-		FILE_ANY,
-		FILE_TEXT,
-		FILE_ANIMATION,
-		FILE_MASK,
-		FILE_CAMPAIGN,
-		FILE_MAP,
-		FILE_FONT,
-		FILE_GRAPHICS,
-		FILE_VIDEO,
-		FILE_SOUND,
-		FILE_OTHER
+		ANY,
+		TEXT,
+		ANIMATION,
+		MASK,
+		CAMPAIGN,
+		MAP,
+		FONT,
+		GRAPHICS,
+		VIDEO,
+		SOUND,
+		OTHER
 	};
 };
 
@@ -66,9 +66,9 @@ struct ResourceIdentifier
 
 	// resource type, (FILE_IMAGE), required to prevent conflicts if files with different type (text and image)
 	// have same basename (we had this problem with garrison.txt and garrison.pcx in h3bitmap.lod)
-	const EResourceType::EResourceType type;
+	const EResType::EResType type;
 
-	ResourceIdentifier(const std::string & Name, const EResourceType::EResourceType Type) 
+	ResourceIdentifier(const std::string & Name, const EResType::EResType Type) 
 		: name(Name), type(Type) { };
 
 	inline bool operator==(ResourceIdentifier const & other) const
@@ -101,12 +101,6 @@ struct ResourceLocator
 	ResourceLocator() : loader(NULL), resourceName("") { };
 	ResourceLocator(IResourceLoader * Loader, const std::string & ResourceName) 
 		: loader(Loader), resourceName(ResourceName) { };
-	ResourceLocator & operator=(const ResourceLocator & other)
-	{ 
-		loader = other.loader; 
-		resourceName = other.resourceName;
-		return *this;
-	}
 
 	inline bool operator==(ResourceLocator const & other) const
 	{
@@ -130,12 +124,10 @@ typedef shared_ptr<CMemoryStream> CMemoryStreamPtr;
 class IResourceLoader
 {
 protected:
-	boost::mutex * mutex;
-
 	// Prefix would be: DATA/... or SPRITES/... e.g.
 	const std::string prefix;
 
-	IResourceLoader(const std::string & Prefix) : prefix(Prefix) { mutex = new boost::mutex; }
+	IResourceLoader(const std::string & Prefix) : prefix(Prefix) {  }
 
 	// Adds a detected resource to the global map
 	void addResourceToMap(TResourcesMap map, const ResourceIdentifier & identifier, const ResourceLocator & locator);
@@ -151,7 +143,7 @@ public:
 	// Should be overridden by sub-classes
 	virtual CMemoryStreamPtr loadResource(const std::string & resourceName);
 
-	virtual ~IResourceLoader() { delete mutex; }
+	virtual ~IResourceLoader() { }
 };
 
 // Interface for general archive loaders
@@ -164,7 +156,7 @@ protected:
 		std::string name;
 
 		// file type determined by extension
-		EResourceType::EResourceType type;
+		EResType::EResType type;
 
 		// Distance in bytes from beginning
 		int offset;
@@ -175,11 +167,11 @@ protected:
 		// Size within compression in bytes
 		int size;
 
-		ArchiveEntry(const std::string & Name, EResourceType::EResourceType Type)
+		ArchiveEntry(const std::string & Name, EResType::EResType Type)
 			: name(Name), type(Type), offset(0), realSize(0), size(0) {};
-		ArchiveEntry(const std::string & Name): name(Name), type(EResourceType::FILE_OTHER), offset(0),
+		ArchiveEntry(const std::string & Name): name(Name), type(EResType::OTHER), offset(0),
 			realSize(0), size(0) {};
-		ArchiveEntry() : name(""), type(EResourceType::FILE_OTHER), offset(0), realSize(0), size(0) {};
+		ArchiveEntry() : name(""), type(EResType::OTHER), offset(0), realSize(0), size(0) {};
 	};
 
 	const std::string archiveFile;
@@ -254,11 +246,18 @@ class CFileSystemHandler
 {
 	TResourcesMap resources;
 	std::vector<IResourceLoader *> loaders;
+	boost::mutex * mutex;
 
 	boost::unordered_map<ResourceLocator, weak_ptr<CMemoryStream> > memoryStreams;
 
-	CMemoryStreamPtr addResource(const ResourceLocator & locator);
+	CMemoryStreamPtr addResource(const ResourceLocator & locator, bool unpackResource = false);
 	void addResourceToMap(const ResourceIdentifier & identifier, const ResourceLocator & locator);
+
+	// Get unpacked file with the given filepath
+	CMemoryStreamPtr getUnpackedFile(const std::string & path) const;
+
+	// Get unpacked data from memory
+	CMemoryStreamPtr getUnpackedData(CMemoryStreamPtr memStream) const;
 
 public:
 	~CFileSystemHandler();
@@ -268,23 +267,20 @@ public:
 
 	// Get a resource as a flat, binary stream(shared) with the given identifier and a flag, whether to load
 	// resource from LOD/first loaded or last inserted resource
-	CMemoryStreamPtr getResource(const ResourceIdentifier & identifier, bool fromBegin = false);
+	CMemoryStreamPtr getResource(const ResourceIdentifier & identifier, bool fromBegin = false, bool unpackResource = false);
 	
 	// Get a resource as a string(not shared, can be easily altered) with the given identifier and a flag, 
 	// whether to load resource from LOD/first loaded or last inserted resource
 	std::string getResourceAsString(const ResourceIdentifier & identifier, bool fromBegin = false);
-	
-	// Get unpacked file(not shared, not registered in global map => you can load resources 
-	// which weren't present at startup) with the given filepath
-	CMemoryStreamPtr getUnpackedFile(const std::string & path) const;
-	
-	// Get unpacked data from memory(not shared, not registered)
-	CMemoryStreamPtr getUnpackedData(CMemoryStreamPtr memStream) const;
+
+	// Gets a resource unpacked with the given identifier and a flag,
+	// whether to load resource from LOD/first loaded or last inserted resource
+	CMemoryStreamPtr getUnpackedResource(const ResourceIdentifier & identifier, bool fromBegin = false);
 
 	void writeMemoryStreamToFile(CMemoryStreamPtr memStream, const std::string & destFile) const;
 
-	// Helper method: Converts a filename ext to EResourceType enum
-	static EResourceType::EResourceType convertFileExtToResType(const std::string & fileExt);
+	// Helper method: Converts a filename ext to EResType enum
+	static EResType::EResType convertFileExtToResType(const std::string & fileExt);
 	
 	// Helper method: Converts a resource name to uppercase and returns a pair of strings where the 1.value is
 	// the raw resource name and the 2.value is the extension name (with preceding dot)

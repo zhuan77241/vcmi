@@ -7,16 +7,13 @@
 
 ui8 CMemoryStream::readByte8()
 {
-	if(seekPos == length)
-		return NULL;
-
+	assert(seekPos < length);
 	return data[seekPos++];
 }
 
 ui16 CMemoryStream::readByte16()
 {
-	if (seekPos == length - 1)
-		return NULL;
+	assert(seekPos < length - 1);
 	
 	seekPos += 2;
 	return read_le_u16(data);
@@ -24,8 +21,7 @@ ui16 CMemoryStream::readByte16()
 
 ui32 CMemoryStream::readByte32()
 {
-	if (seekPos == length - 3)
-		return NULL;
+	assert(seekPos < length - 3);
 
 	seekPos += 4;
 	return read_le_u32(data);
@@ -33,7 +29,7 @@ ui32 CMemoryStream::readByte32()
 
 CMemoryStream::CMemoryStream(const std::string & filePath) : data(NULL), seekPos(0), length(0)
 {
-	std::ifstream fileInput(filePath.c_str(), std::ios::in | std::ios::binary | std::ios::beg);
+	std::ifstream fileInput(filePath.c_str(), std::ios::in | std::ios::binary);
 	
 	if (fileInput.is_open())
 	{
@@ -51,7 +47,6 @@ CMemoryStream::CMemoryStream(const std::string & filePath) : data(NULL), seekPos
 CMemoryStream::CMemoryStream(const CMemoryStream & cpy)
 {
 	*this = cpy;
-	
 }
 
 CMemoryStream & CMemoryStream::operator=(const CMemoryStream & cpy)
@@ -99,7 +94,7 @@ void IResourceLoader::addResourceToMap(TResourcesMap map, const ResourceIdentifi
 void IResourceLoader::addEntryToMap(TResourcesMap & map, const std::string & name)
 {
 	std::pair<std::string, std::string> resData = CFileSystemHandler::adaptResourceName(name);
-	EResourceType::EResourceType extType = CFileSystemHandler::convertFileExtToResType(resData.second);
+	EResType::EResType extType = CFileSystemHandler::convertFileExtToResType(resData.second);
 	ResourceIdentifier ident(prefix + resData.first, extType);
 	ResourceLocator locator(this, name);
 	addResourceToMap(map, ident, locator);
@@ -177,7 +172,6 @@ CMemoryStreamPtr CLodResourceLoader::loadResource(const std::string & resourceNa
 	assert(entries.find(resourceName) == entries.end());
 
 	const ArchiveEntry entry = entries[resourceName];
-	mutex->lock();
 
 	ui8 * outp;
 	CMemoryStreamPtr rslt;
@@ -192,7 +186,6 @@ CMemoryStreamPtr CLodResourceLoader::loadResource(const std::string & resourceNa
 
 		LOD.seekg(entry.offset, std::ios::beg);
 		LOD.read((char*)outp, entry.realSize);
-		mutex->unlock();
 		rslt = shared_ptr<CMemoryStream>(new CMemoryStream(outp, entry.realSize));
 		return rslt;
 	}
@@ -208,7 +201,6 @@ CMemoryStreamPtr CLodResourceLoader::loadResource(const std::string & resourceNa
 		{
 			tlog1 << "File decompression wasn't successful. Resource name: " << resourceName << std::endl;
 		}
-		mutex->unlock();
 		delete[] outp;
 		
 		rslt = shared_ptr<CMemoryStream>(new CMemoryStream(decomp, entry.realSize));
@@ -317,12 +309,10 @@ void CFileResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
 
 CMemoryStreamPtr CFileResourceLoader::loadResource(const std::string & resourceName)
 {
-	mutex->lock();
 	CMemoryStreamPtr rslt(new CMemoryStream(resourceName));
 	if(rslt->getLength() == 0)
 		rslt = shared_ptr<CMemoryStream>();
 
-	mutex->unlock();
 	return rslt;
 }
 
@@ -441,11 +431,9 @@ CMemoryStreamPtr CMediaResourceHandler::loadResource(const std::string & resourc
 		return rslt;
 	}
 	
-	mutex->lock();
 	fileHandle.seekg(entry.offset);
 	ui8 * outp = new ui8[entry.size];
 	fileHandle.read(reinterpret_cast<char *>(outp), entry.size);
-	mutex->unlock();
 	fileHandle.close();
 
 	rslt = shared_ptr<CMemoryStream>(new CMemoryStream(outp, entry.size));
@@ -464,22 +452,22 @@ void CFileSystemHandler::addHandler(IResourceLoader * resHandler)
 	resHandler->insertEntriesIntoResourcesMap(resources);
 }
 
-EResourceType::EResourceType CFileSystemHandler::convertFileExtToResType(const std::string & fileExt)
+EResType::EResType CFileSystemHandler::convertFileExtToResType(const std::string & fileExt)
 {
 	// Create convert map statically once
-	using namespace EResourceType;
+	using namespace EResType;
 	using namespace boost::assign;
 
-	static const std::map<std::string, ::EResourceType::EResourceType> extMap = map_list_of("TXT", FILE_TEXT)
-		(".JSON", FILE_TEXT)(".DEF", FILE_ANIMATION)(".MSK", FILE_MASK)(".MSG", FILE_MASK)
-		(".H3C", FILE_CAMPAIGN)(".H3M", FILE_MAP)(".FNT", FILE_FONT)(".BMP", FILE_GRAPHICS)
-		(".JPG", FILE_GRAPHICS)(".PCX", FILE_GRAPHICS)(".PNG", FILE_GRAPHICS)(".TGA", FILE_GRAPHICS)
-		(".WAV", FILE_SOUND)(".SMK", FILE_VIDEO)(".BIK", FILE_VIDEO);
+	static const std::map<std::string, ::EResType::EResType> extMap = map_list_of("TXT", TEXT)
+		(".JSON", TEXT)(".DEF", ANIMATION)(".MSK", MASK)(".MSG", MASK)
+		(".H3C", CAMPAIGN)(".H3M", MAP)(".FNT", FONT)(".BMP", GRAPHICS)
+		(".JPG", GRAPHICS)(".PCX", GRAPHICS)(".PNG", GRAPHICS)(".TGA", GRAPHICS)
+		(".WAV", SOUND)(".SMK", VIDEO)(".BIK", VIDEO);
 
 	// Convert file ext(string) to resource type(enum)
-	std::map<std::string, ::EResourceType::EResourceType>::const_iterator it = extMap.find(fileExt);
+	std::map<std::string, ::EResType::EResType>::const_iterator it = extMap.find(fileExt);
 	if(it == extMap.end())
-		return FILE_OTHER;
+		return OTHER;
 	else
 		return it->second;
 }
@@ -505,7 +493,7 @@ std::pair<std::string, std::string> CFileSystemHandler::adaptResourceName(const 
 }
 
 
-CMemoryStreamPtr CFileSystemHandler::getResource(const ResourceIdentifier & identifier, bool fromBegin /*=false */)
+CMemoryStreamPtr CFileSystemHandler::getResource(const ResourceIdentifier & identifier, bool fromBegin /*=false */, bool unpackResource /*=false */)
 {
 	CMemoryStreamPtr rslt;
 
@@ -532,14 +520,14 @@ CMemoryStreamPtr CFileSystemHandler::getResource(const ResourceIdentifier & iden
 	if(memoryStreams.find(loc) == memoryStreams.end())
 	{
 		// load it
-		return addResource(loc);
+		return addResource(loc, unpackResource);
 	}
 	
 	weak_ptr<CMemoryStream> ptr = memoryStreams.at(loc);
 	if (ptr.expired())
 	{
 		// load it
-		return addResource(loc);
+		return addResource(loc, unpackResource);
 	}
 		
 	// already loaded, just return resource
@@ -547,11 +535,22 @@ CMemoryStreamPtr CFileSystemHandler::getResource(const ResourceIdentifier & iden
 	return rslt;
 }
 
-CMemoryStreamPtr CFileSystemHandler::addResource(const ResourceLocator & loc)
+CMemoryStreamPtr CFileSystemHandler::addResource(const ResourceLocator & loc, bool unpackResource /*=false */)
 {
+	mutex->lock();
 	CMemoryStreamPtr rslt = loc.loader->loadResource(loc.resourceName);
-	weak_ptr<CMemoryStream> ptr(rslt);
-	memoryStreams.insert(std::make_pair(loc, ptr));
+	
+	// Don't register unpacked data, as this would result in trouble, when you first load the same
+	// resource packed and then unpacked if it's still in use at the same time.
+	// MAPS/CAMPAIGNS don't need to shared anyway as it's impossible to play two campaigns the same time.:)
+	if (unpackResource)
+		rslt = getUnpackedData(rslt);
+	else
+	{
+		weak_ptr<CMemoryStream> ptr(rslt);
+		memoryStreams.insert(std::make_pair(loc, ptr));
+	}
+	mutex->unlock();
 	return rslt;
 }
 
@@ -559,6 +558,11 @@ std::string CFileSystemHandler::getResourceAsString(const ResourceIdentifier & i
 {
 	CMemoryStreamPtr memStream = getResource(identifier, fromBegin);
 	return memStream->getDataAsString();
+}
+
+CMemoryStreamPtr CFileSystemHandler::getUnpackedResource(const ResourceIdentifier & identifier, bool fromBegin /*=false */)
+{
+	return getResource(identifier, fromBegin, true);
 }
 
 //It is possible to use uncompress function from zlib but we  need to know decompressed size (not present in compressed data)
