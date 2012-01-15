@@ -5,13 +5,13 @@
 #include "vcmi_endian.h"
 #include "VCMIDirs.h"
 
-ui8 CMemoryStream::readByte8()
+ui8 CMemoryStream::readInt8()
 {
 	assert(seekPos < length);
 	return data[seekPos++];
 }
 
-ui16 CMemoryStream::readByte16()
+ui16 CMemoryStream::readInt16()
 {
 	assert(seekPos < length - 1);
 	
@@ -19,7 +19,7 @@ ui16 CMemoryStream::readByte16()
 	return read_le_u16(data);
 }
 
-ui32 CMemoryStream::readByte32()
+ui32 CMemoryStream::readInt32()
 {
 	assert(seekPos < length - 3);
 
@@ -40,7 +40,7 @@ CMemoryStream::CMemoryStream(const std::string & filePath) : data(NULL), seekPos
 	}
 	else
 	{
-		tlog2 << "File " << filePath << " doesn't exist." << std::endl;
+		tlog1 << "File " << filePath << " doesn't exist." << std::endl;
 	}
 }
 
@@ -60,9 +60,7 @@ CMemoryStream & CMemoryStream::operator=(const CMemoryStream & cpy)
 
 ui8 * CMemoryStream::getRawData()
 {
-	ui8 * rslt = new ui8[length];
-	memcpy(rslt, data, length);
-	return rslt;
+	return data;
 }
 
 void CMemoryStream::writeToFile(const std::string & destFile) const
@@ -72,23 +70,30 @@ void CMemoryStream::writeToFile(const std::string & destFile) const
 	out.close();
 }
 
-void IResourceLoader::addResourceToMap(TResourcesMap map, const ResourceIdentifier & identifier, 
-									   const ResourceLocator & locator)
+void CMemoryStream::setSeekPos(size_t pos)
 {
-	// No entry found for ident => create vector and add to it
-	if(map.find(identifier) == map.end())
-	{
-		std::list<ResourceLocator> locators;
-		locators.push_back(locator);
-		map.insert(std::make_pair(identifier, locators));
-	}
-	// Entry found => add to vector
-	else
-	{
-		std::list<ResourceLocator> locators = map.at(identifier);
-		locators.push_back(locator);
-		map.insert(std::make_pair(identifier, locators));
-	}
+	assert(pos < length);
+	seekPos = pos;
+}
+
+inline void CMemoryStream::reset()
+{ 
+	seekPos = 0; 
+}
+
+inline size_t CMemoryStream::getSeekPos() const 
+{ 
+	return seekPos; 
+}
+
+inline size_t CMemoryStream::getLength() const 
+{ 
+	return length; 
+}
+
+inline bool CMemoryStream::moreBytesToRead() const 
+{ 
+	return seekPos < length; 
 }
 
 void IResourceLoader::addEntryToMap(TResourcesMap & map, const std::string & name)
@@ -97,7 +102,7 @@ void IResourceLoader::addEntryToMap(TResourcesMap & map, const std::string & nam
 	EResType::EResType extType = CFileSystemHandler::convertFileExtToResType(resData.second);
 	ResourceIdentifier ident(prefix + resData.first, extType);
 	ResourceLocator locator(this, name);
-	addResourceToMap(map, ident, locator);
+	map[ident].push_back(locator);
 }
 
 void CLodResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
@@ -160,21 +165,21 @@ void CLodResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
 		ResourceIdentifier mapIdent(prefix + entry.name, entry.type);
 		ResourceLocator locator(this, lodEntries[i].filename);
 		
-		addResourceToMap(map, mapIdent, locator);
+		map[mapIdent].push_back(locator);
 	}
 	
 	// Delete LodEntry array
 	delete [] lodEntries;
 }
 
-CMemoryStreamPtr CLodResourceLoader::loadResource(const std::string & resourceName)
+TMemoryStreamPtr CLodResourceLoader::loadResource(const std::string & resourceName)
 {
 	assert(entries.find(resourceName) == entries.end());
 
 	const ArchiveEntry entry = entries[resourceName];
 
 	ui8 * outp;
-	CMemoryStreamPtr rslt;
+	TMemoryStreamPtr rslt;
 
 	std::ifstream LOD;
 	LOD.open(archiveFile.c_str(), std::ios::in | std::ios::binary);
@@ -307,9 +312,9 @@ void CFileResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
 	}
 }
 
-CMemoryStreamPtr CFileResourceLoader::loadResource(const std::string & resourceName)
+TMemoryStreamPtr CFileResourceLoader::loadResource(const std::string & resourceName)
 {
-	CMemoryStreamPtr rslt(new CMemoryStream(resourceName));
+	TMemoryStreamPtr rslt(new CMemoryStream(resourceName));
 	if(rslt->getLength() == 0)
 		rslt = shared_ptr<CMemoryStream>();
 
@@ -321,7 +326,7 @@ void CSoundResourceHandler::insertEntriesIntoResourcesMap(TResourcesMap & map)
 	std::ifstream fileHandle(archiveFile.c_str(), std::ios::in | std::ios::binary);
 	if (!fileHandle.good())
 	{
-		tlog3 << "File " << archiveFile << " couldn't be opened" << std::endl;
+		tlog1 << "File " << archiveFile << " couldn't be opened" << std::endl;
 		return;
 	}
 
@@ -364,7 +369,7 @@ void CVideoResourceHandler::insertEntriesIntoResourcesMap(TResourcesMap & map)
 	std::ifstream fileHandle(archiveFile.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
 	if (!fileHandle.good())
 	{
-		tlog3 << "File " << archiveFile << " couldn't be opened" << std::endl;
+		tlog1 << "File " << archiveFile << " couldn't be opened" << std::endl;
 		return;
 	}
 	
@@ -415,19 +420,19 @@ void CVideoResourceHandler::insertEntriesIntoResourcesMap(TResourcesMap & map)
 	}
 }
 
-CMemoryStreamPtr CMediaResourceHandler::loadResource(const std::string & resourceName)
+TMemoryStreamPtr CMediaResourceHandler::loadResource(const std::string & resourceName)
 {
 	assert(entries.find(resourceName) == entries.end());
 
 	const ArchiveEntry entry = entries[resourceName];
 
-	CMemoryStreamPtr rslt;
+	TMemoryStreamPtr rslt;
 
 	std::ifstream fileHandle;
 	fileHandle.open(archiveFile.c_str(), std::ios::in | std::ios::binary);
 	if (!fileHandle.good())
 	{
-		tlog2 << "Archive file " << archiveFile << " is corrupt." << std::endl;
+		tlog1 << "Archive file " << archiveFile << " is corrupt." << std::endl;
 		return rslt;
 	}
 	
@@ -440,10 +445,17 @@ CMemoryStreamPtr CMediaResourceHandler::loadResource(const std::string & resourc
 	return rslt;
 }
 
+CFileSystemHandler::CFileSystemHandler()
+{
+	mutex = new boost::mutex;
+}
+
 CFileSystemHandler::~CFileSystemHandler()
 {
 	for (size_t i = 0; i < loaders.size(); ++i)
 		delete loaders[i];
+
+	delete mutex;
 }
 
 void CFileSystemHandler::addHandler(IResourceLoader * resHandler)
@@ -493,14 +505,14 @@ std::pair<std::string, std::string> CFileSystemHandler::adaptResourceName(const 
 }
 
 
-CMemoryStreamPtr CFileSystemHandler::getResource(const ResourceIdentifier & identifier, bool fromBegin /*=false */, bool unpackResource /*=false */)
+TMemoryStreamPtr CFileSystemHandler::getResource(const ResourceIdentifier & identifier, bool fromBegin /*=false */, bool unpackResource /*=false */)
 {
-	CMemoryStreamPtr rslt;
+	TMemoryStreamPtr rslt;
 
 	// check if resource is registered
 	if(resources.find(identifier) == resources.end())
 	{
-		tlog3 << "Resource with name " << identifier.name << " and type " 
+		tlog2 << "Resource with name " << identifier.name << " and type " 
 			<< identifier.type << " wasn't found." << std::endl;
 		return rslt;
 	}
@@ -535,10 +547,10 @@ CMemoryStreamPtr CFileSystemHandler::getResource(const ResourceIdentifier & iden
 	return rslt;
 }
 
-CMemoryStreamPtr CFileSystemHandler::addResource(const ResourceLocator & loc, bool unpackResource /*=false */)
+TMemoryStreamPtr CFileSystemHandler::addResource(const ResourceLocator & loc, bool unpackResource /*=false */)
 {
 	mutex->lock();
-	CMemoryStreamPtr rslt = loc.loader->loadResource(loc.resourceName);
+	TMemoryStreamPtr rslt = loc.loader->loadResource(loc.resourceName);
 	
 	// Don't register unpacked data, as this would result in trouble, when you first load the same
 	// resource packed and then unpacked if it's still in use at the same time.
@@ -556,17 +568,17 @@ CMemoryStreamPtr CFileSystemHandler::addResource(const ResourceLocator & loc, bo
 
 std::string CFileSystemHandler::getResourceAsString(const ResourceIdentifier & identifier, bool fromBegin /*=false */)
 {
-	CMemoryStreamPtr memStream = getResource(identifier, fromBegin);
+	TMemoryStreamPtr memStream = getResource(identifier, fromBegin);
 	return memStream->getDataAsString();
 }
 
-CMemoryStreamPtr CFileSystemHandler::getUnpackedResource(const ResourceIdentifier & identifier, bool fromBegin /*=false */)
+TMemoryStreamPtr CFileSystemHandler::getUnpackedResource(const ResourceIdentifier & identifier, bool fromBegin /*=false */)
 {
 	return getResource(identifier, fromBegin, true);
 }
 
 //It is possible to use uncompress function from zlib but we  need to know decompressed size (not present in compressed data)
-CMemoryStreamPtr CFileSystemHandler::getUnpackedData(CMemoryStreamPtr memStream) const
+TMemoryStreamPtr CFileSystemHandler::getUnpackedData(TMemoryStreamPtr memStream) const
 {
 	std::string filename = GVCMIDirs.UserPath + "/tmp_gzip";
 
@@ -574,12 +586,12 @@ CMemoryStreamPtr CFileSystemHandler::getUnpackedData(CMemoryStreamPtr memStream)
 	fwrite(memStream->getRawData(), 1, memStream->getLength(), file);
 	fclose(file);
 
-	CMemoryStreamPtr ret = getUnpackedFile(filename);
+	TMemoryStreamPtr ret = getUnpackedFile(filename);
 	remove(filename.c_str());
 	return ret;
 }
 
-CMemoryStreamPtr CFileSystemHandler::getUnpackedFile(const std::string & path) const
+TMemoryStreamPtr CFileSystemHandler::getUnpackedFile(const std::string & path) const
 {
 	const int bufsize = 65536;
 	int mapsize = 0;
@@ -620,11 +632,11 @@ CMemoryStreamPtr CFileSystemHandler::getUnpackedFile(const std::string & path) c
 			delete [] *it;
 	}
 	
-	CMemoryStreamPtr rslt(new CMemoryStream(initTable, mapsize));
+	TMemoryStreamPtr rslt(new CMemoryStream(initTable, mapsize));
 	return rslt;
 }
 
-void CFileSystemHandler::writeMemoryStreamToFile(CMemoryStreamPtr memStream, const std::string & destFile) const
+void CFileSystemHandler::writeMemoryStreamToFile(TMemoryStreamPtr memStream, const std::string & destFile) const
 {
 	memStream->writeToFile(destFile);
 }

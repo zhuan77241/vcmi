@@ -1,6 +1,6 @@
 #pragma once
 
-#include "boost/unordered_map.hpp"
+#include "CFileSystemHandlerFwd.h"
 
 /*
  * CFileSystemHandler.h, part of VCMI engine
@@ -13,7 +13,7 @@
  */
 
 // This class wraps a raw char array. Can be used for reading from memory.
-class CMemoryStream
+class DLL_LINKAGE CMemoryStream
 {
 private:
 	ui8 * data;
@@ -22,43 +22,29 @@ private:
 
 public:
 	CMemoryStream(ui8 * Data, const size_t Length) : data(Data), seekPos(0), length(Length) { };
-	CMemoryStream(const std::string & filePath);
+	explicit CMemoryStream(const std::string & filePath);
 	CMemoryStream(const CMemoryStream & cpy);
 	CMemoryStream & operator=(const CMemoryStream & cpy);
 	~CMemoryStream() { delete[] data; }
 
-	bool moreBytesToRead() const { return seekPos < length; }
-	void reset() { seekPos = 0; }
-	ui8 readByte8();
-	ui16 readByte16();
-	ui32 readByte32();
-	ui8 * getRawData();
-	size_t getLength() const { return length; }
+	inline bool moreBytesToRead() const;
+	inline size_t getLength() const;
+	inline void reset();
+	inline size_t getSeekPos() const;
+	inline void setSeekPos(size_t pos);
+	
+	inline ui8 readInt8();
+	inline ui16 readInt16();
+	inline ui32 readInt32();
+	
+	// Gets raw ui8 pointer of data. Do not delete that data. Ownership belongs to CMemoryStream.
+	inline ui8 * getRawData();
 	std::string getDataAsString() const { std::string rslt(data, data + length); return rslt; }
 	void writeToFile(const std::string & destFile) const;
 };
 
-// Specifies the resource type
-namespace EResType
-{
-	enum EResType
-	{
-		ANY,
-		TEXT,
-		ANIMATION,
-		MASK,
-		CAMPAIGN,
-		MAP,
-		FONT,
-		GRAPHICS,
-		VIDEO,
-		SOUND,
-		OTHER
-	};
-};
-
 // A simple struct which can identify several resources which belong together
-struct ResourceIdentifier
+struct DLL_LINKAGE ResourceIdentifier
 {
 	// Resource name (for example "DATA/MAINMENU")
 	// No extension so .pcx and .png can override each other, always in upper case
@@ -86,11 +72,9 @@ struct ResourceIdentifier
 	}
 }; 
 
-class IResourceLoader;
-
 // A simple struct which represents the exact position of a resource
 // Needed for loading resources
-struct ResourceLocator
+struct DLL_LINKAGE ResourceLocator
 {
 	// interface that does actual resource loading
 	IResourceLoader * loader;
@@ -117,17 +101,14 @@ struct ResourceLocator
 	}
 };
 
-typedef boost::unordered_map<ResourceIdentifier, std::list<ResourceLocator> > TResourcesMap;
-typedef shared_ptr<CMemoryStream> CMemoryStreamPtr;
-
 // Interface for general resource loaders
-class IResourceLoader
+class DLL_LINKAGE IResourceLoader
 {
 protected:
 	// Prefix would be: DATA/... or SPRITES/... e.g.
 	const std::string prefix;
 
-	IResourceLoader(const std::string & Prefix) : prefix(Prefix) {  }
+	explicit IResourceLoader(const std::string & Prefix) : prefix(Prefix) {  }
 
 	// Adds a detected resource to the global map
 	void addResourceToMap(TResourcesMap map, const ResourceIdentifier & identifier, const ResourceLocator & locator);
@@ -136,18 +117,16 @@ protected:
 
 public:
 	// Full folder/filesystem/virtual folder scan of loaded resource name
-	// Should be overridden by sub-classes
-	virtual void insertEntriesIntoResourcesMap(TResourcesMap & map);
+	virtual void insertEntriesIntoResourcesMap(TResourcesMap & map) =0;
 	
 	// Loads a resource with the given resource name
-	// Should be overridden by sub-classes
-	virtual CMemoryStreamPtr loadResource(const std::string & resourceName);
+	virtual TMemoryStreamPtr loadResource(const std::string & resourceName) =0;
 
 	virtual ~IResourceLoader() { }
 };
 
 // Interface for general archive loaders
-class IArchiveLoader : public IResourceLoader
+class DLL_LINKAGE IArchiveLoader : public IResourceLoader
 {
 protected:
 	struct ArchiveEntry
@@ -182,7 +161,7 @@ protected:
 };
 
 // Responsible for loading resources from lod archives
-class CLodResourceLoader : public IArchiveLoader
+class DLL_LINKAGE CLodResourceLoader : public IArchiveLoader
 {	
 	struct LodDecompressHelper
 	{
@@ -198,11 +177,11 @@ public:
 		: IArchiveLoader(lodFile, prefix) { }; 
 
 	void insertEntriesIntoResourcesMap(TResourcesMap & map);
-	CMemoryStreamPtr loadResource(const std::string & resourceName);
+	TMemoryStreamPtr loadResource(const std::string & resourceName);
 };
 
 // Responsible for loading files from filesystem
-class CFileResourceLoader : public IResourceLoader
+class DLL_LINKAGE CFileResourceLoader : public IResourceLoader
 {
 	const std::string pathToFolder;
 
@@ -211,20 +190,20 @@ public:
 		: IResourceLoader(Prefix), pathToFolder(PathToFolder) { };
 
 	void insertEntriesIntoResourcesMap(TResourcesMap & map);
-	CMemoryStreamPtr loadResource(const std::string & resourceName);
+	TMemoryStreamPtr loadResource(const std::string & resourceName);
 };
 
-class CMediaResourceHandler : public IArchiveLoader
+class DLL_LINKAGE CMediaResourceHandler : public IArchiveLoader
 {
 protected:
 	CMediaResourceHandler(const std::string & file, const std::string & prefix): IArchiveLoader(file, prefix) { };
 
 public:
-	CMemoryStreamPtr loadResource(const std::string & resourceName);
+	TMemoryStreamPtr loadResource(const std::string & resourceName);
 };
 
 // Responsible for loading sounds from snd archives
-class CSoundResourceHandler : public CMediaResourceHandler
+class DLL_LINKAGE CSoundResourceHandler : public CMediaResourceHandler
 {
 public:
 	CSoundResourceHandler(const std::string & file, const std::string & prefix) : CMediaResourceHandler(file, prefix) { };
@@ -233,7 +212,7 @@ public:
 };
 
 // Responsible for loading videos from vid archives
-class CVideoResourceHandler : public CMediaResourceHandler
+class DLL_LINKAGE CVideoResourceHandler : public CMediaResourceHandler
 {
 public:
 	CVideoResourceHandler(const std::string & file, const std::string & prefix) : CMediaResourceHandler(file, prefix) { };
@@ -242,7 +221,7 @@ public:
 };
 
 // Responsible for loading and handling binary resources
-class CFileSystemHandler
+class DLL_LINKAGE CFileSystemHandler
 {
 	TResourcesMap resources;
 	std::vector<IResourceLoader *> loaders;
@@ -250,16 +229,16 @@ class CFileSystemHandler
 
 	boost::unordered_map<ResourceLocator, weak_ptr<CMemoryStream> > memoryStreams;
 
-	CMemoryStreamPtr addResource(const ResourceLocator & locator, bool unpackResource = false);
-	void addResourceToMap(const ResourceIdentifier & identifier, const ResourceLocator & locator);
+	TMemoryStreamPtr addResource(const ResourceLocator & locator, bool unpackResource = false);
 
 	// Get unpacked file with the given filepath
-	CMemoryStreamPtr getUnpackedFile(const std::string & path) const;
+	TMemoryStreamPtr getUnpackedFile(const std::string & path) const;
 
 	// Get unpacked data from memory
-	CMemoryStreamPtr getUnpackedData(CMemoryStreamPtr memStream) const;
+	TMemoryStreamPtr getUnpackedData(TMemoryStreamPtr memStream) const;
 
 public:
+	CFileSystemHandler();
 	~CFileSystemHandler();
 
 	// Add a resource handler to the filesystem which can be used load data from LOD, filesystem, ZIP,...
@@ -267,7 +246,7 @@ public:
 
 	// Get a resource as a flat, binary stream(shared) with the given identifier and a flag, whether to load
 	// resource from LOD/first loaded or last inserted resource
-	CMemoryStreamPtr getResource(const ResourceIdentifier & identifier, bool fromBegin = false, bool unpackResource = false);
+	TMemoryStreamPtr getResource(const ResourceIdentifier & identifier, bool fromBegin = false, bool unpackResource = false);
 	
 	// Get a resource as a string(not shared, can be easily altered) with the given identifier and a flag, 
 	// whether to load resource from LOD/first loaded or last inserted resource
@@ -275,9 +254,9 @@ public:
 
 	// Gets a resource unpacked with the given identifier and a flag,
 	// whether to load resource from LOD/first loaded or last inserted resource
-	CMemoryStreamPtr getUnpackedResource(const ResourceIdentifier & identifier, bool fromBegin = false);
+	TMemoryStreamPtr getUnpackedResource(const ResourceIdentifier & identifier, bool fromBegin = false);
 
-	void writeMemoryStreamToFile(CMemoryStreamPtr memStream, const std::string & destFile) const;
+	void writeMemoryStreamToFile(TMemoryStreamPtr memStream, const std::string & destFile) const;
 
 	// Helper method: Converts a filename ext to EResType enum
 	static EResType::EResType convertFileExtToResType(const std::string & fileExt);

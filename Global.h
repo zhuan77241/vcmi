@@ -67,6 +67,7 @@
 #include <boost/program_options.hpp>
 #include <boost/thread.hpp>
 #include <boost/unordered_set.hpp>
+#include <boost/unordered_map.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 

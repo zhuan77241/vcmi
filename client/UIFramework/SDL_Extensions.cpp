@@ -2,10 +2,12 @@
 #include "SDL_Extensions.h"
 
 #include <SDL_ttf.h>
+#include <SDL_image.h>
 #include "../CGameInfo.h"
 #include "../CMessage.h"
 #include "../CDefHandler.h"
 #include "../Graphics.h"
+#include "../../lib/CFileSystemHandler.h"
 
 /*
  * SDL_Extensions.cpp, part of VCMI engine
@@ -1294,6 +1296,104 @@ void CSDL_Ext::fillRect( SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color )
 		newRect = Rect(0, 0, dst->w, dst->h);
 	}
 	SDL_FillRect(dst, &newRect, color);
+}
+
+SDL_Surface * CSDL_Ext::convertFromPCX(TMemoryStreamPtr data)
+{
+	enum EPCXFormat
+	{
+		PCX8B, 
+		PCX24B
+	};
+
+	SDL_Surface * rslt;
+	EPCXFormat format;
+
+	// Read file size, width and height
+	ui32 fSize = data->readInt32();
+	ui32 width = data->readInt32();
+	ui32 height = data->readInt32();
+
+	// Detect pcx format type
+	if(fSize == width * height * 3)
+		format = PCX24B;
+	else if(fSize == width * height)
+		format = PCX8B;
+	else 
+		return NULL;
+
+	if(format == PCX8B)
+	{
+		rslt = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 8, 0, 0, 0, 0);
+		
+		// Copy pixels from memory stream to SDL_Surface object
+		for(size_t i = 0; i < height; i++)
+		{
+			memcpy(reinterpret_cast<char *>(rslt->pixels) + rslt->pitch * i, data->getRawData(), width);
+			data->setSeekPos(data->getSeekPos() + width);
+		}
+
+		// Copy pixel palette
+		data->setSeekPos(data->getLength() - 256 * 3);
+		for(size_t i = 0; i < 256; i++)
+		{
+			SDL_Color tp;
+#if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
+			tp.b = data->readInt8();
+			tp.g = data->readInt8();
+			tp.r = data->readInt8();
+#else
+			tp.r = data->readInt8();
+			tp.g = data->readInt8();
+			tp.b = data->readInt8();
+#endif
+			tp.unused = 0;
+			rslt->format->palette->colors[i] = tp;
+		}
+	}
+	else
+	{
+		// Create rbg mask
+#if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
+		int bmask = 0xff0000;
+		int gmask = 0x00ff00;
+		int rmask = 0x0000ff;
+#else
+		int bmask = 0x0000ff;
+		int gmask = 0x00ff00;
+		int rmask = 0xff0000;
+#endif
+		rslt = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 24, rmask, gmask, bmask, 0);
+
+		// Copy pixels from memory stream to SDL_Surface object
+		for(size_t i = 0; i < height; i++)
+		{
+			memcpy(reinterpret_cast<char *>(rslt->pixels) + rslt->pitch * i, data->getRawData(), width * 3);
+			data->setSeekPos(data->getSeekPos() + width * 3);
+		}
+
+	}
+
+	return rslt;
+}
+
+SDL_Surface * CSDL_Ext::loadImage(TMemoryStreamPtr data, const std::string & imageType)
+{
+	SDL_Surface * rslt = NULL;
+	if(imageType == ".PCX")
+	{
+		rslt = convertFromPCX(data);
+	}
+	else
+	{
+		rslt = IMG_LoadTyped_RW(SDL_RWFromMem(reinterpret_cast<void *>(data->getRawData()), 
+			data->getLength()), 0, const_cast<char *>(imageType.c_str()));
+
+		if(!rslt)
+			throw CImageLoadingError();
+	}
+	
+	return rslt;
 }
 
 SDL_Surface * CSDL_Ext::std32bppSurface = NULL;

@@ -5,6 +5,7 @@
 #include "../../lib/int3.h"
 #include "../FontBase.h"
 #include "Geometries.h"
+#include "../../lib/CFileSystemHandlerFwd.h"
 
 /*
  * SDL_Extensions.h, part of VCMI engine
@@ -47,6 +48,12 @@ namespace Colors
 	const SDL_Color MetallicGold = createColor(173, 142, 66); // http://en.wikipedia.org/wiki/Gold_%28color%29
 	const SDL_Color Maize = createColor(242, 226, 110); // http://en.wikipedia.org/wiki/Maize_%28color%29
 }
+
+class CImageLoadingError : public std::runtime_error
+{
+public:
+	explicit CImageLoadingError(const std::string & message = "") : std::runtime_error(message) { };
+};
 
 template<typename IntType>
 std::string makeNumberShort(IntType number) //the output is a string containing at most 5 characters [4 if positive] (eg. intead 10000 it gives 10k)
@@ -186,4 +193,12 @@ namespace CSDL_Ext
 	SDL_Surface * copySurface(SDL_Surface * mod); //returns copy of given surface
 	void VflipSurf(SDL_Surface * surf); //fluipis given surface by vertical axis
 	void applyEffect(SDL_Surface * surf, const SDL_Rect * rect, int mode); //mode: 0 - sepia, 1 - grayscale
+
+	// Converts a H3 PCX image to a SDL_Surface
+	SDL_Surface * convertFromPCX(TMemoryStreamPtr data);
+
+	// Loads an image from memory.
+	// Params: imageType		E.g.: PCX, TGA, BMP
+	// Throws CImageLoadingError if couldn't be loaded.
+	SDL_Surface * loadImage(TMemoryStreamPtr data, const std::string & imageType);
 };
