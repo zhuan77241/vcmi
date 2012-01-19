@@ -36,10 +36,10 @@
 #include "../lib/RegisterTypes.h"
 #include "../lib/CThreadHelper.h"
 #include "CConfigHandler.h"
-#include "../lib/CFileUtility.h"
 #include "../lib/GameConstants.h"
 #include "UIFramework/CGuiHandler.h"
 #include "UIFramework/CIntObjectClasses.h"
+#include "../lib/CFileSystemHandler.h"
 
 /*
  * CPreGame.cpp, part of VCMI engine
@@ -958,40 +958,40 @@ void SelectionTab::filter( int size, bool selectFirst )
 }
 
 
-void SelectionTab::getFiles(std::vector<FileInfo> &out, const std::string &dirname, const std::string &ext)
+void SelectionTab::getFiles(std::vector<CFileInfo> & out, const std::string & prefix, EResType::EResType type)
 {
-	CFileUtility::getFilesWithExt(out, dirname, ext);
+	CGI->filesystemh->getFilesWithExt(out, prefix, type);
 	allItems.resize(out.size());
 }
 
-void SelectionTab::parseMaps(std::vector<FileInfo> &files, int start, int threads)
+void SelectionTab::parseMaps(std::vector<CFileInfo> &files, int start, int threads)
 {
 	int read=0;
 	ui8 mapBuffer[1500];
 
 	while(start < allItems.size())
 	{
-		gzFile tempf = gzopen(files[start].name.c_str(),"rb");
+		gzFile tempf = gzopen(files[start].getName().c_str(),"rb");
 		read = gzread(tempf, mapBuffer, 1500);
 		gzclose(tempf);
 		if(read < 50  ||  !mapBuffer[4])
 		{
-			tlog3 << "\t\tWarning: corrupted map file: " << files[start].name << std::endl;
+			tlog3 << "\t\tWarning: corrupted map file: " << files[start].getName() << std::endl;
 		}
 		else //valid map
 		{
-			allItems[start].mapInit(files[start].name, mapBuffer);
+			allItems[start].mapInit(files[start].getName(), mapBuffer);
 			//allItems[start].date = "DATEDATE";// files[start].date;
 		}
 		start += threads;
 	}
 }
 
-void SelectionTab::parseGames(std::vector<FileInfo> &files, bool multi)
+void SelectionTab::parseGames(std::vector<CFileInfo> &files, bool multi)
 {
 	for(int i=0; i<files.size(); i++)
 	{
-		CLoadFile lf(files[i].name);
+		CLoadFile lf(files[i].getName());
 		if(!lf.sfile)
 			continue;
 
@@ -999,14 +999,15 @@ void SelectionTab::parseGames(std::vector<FileInfo> &files, bool multi)
 		lf >> sign;
 		if(std::memcmp(sign,"VCMISVG",7))
 		{
-			tlog1 << files[i].name << " is not a correct savefile!" << std::endl;
+			tlog1 << files[i].getName() << " is not a correct savefile!" << std::endl;
 			continue;
 		}
 		allItems[i].mapHeader = new CMapHeader();
 		lf >> *(allItems[i].mapHeader) >> allItems[i].scenarioOpts;
-		allItems[i].filename = files[i].name;
+		allItems[i].filename = files[i].getName();
 		allItems[i].countPlayers();
-		allItems[i].date = std::asctime(std::localtime(&files[i].date));
+		std::time_t date = files[i].getDate();
+		allItems[i].date = std::asctime(std::localtime(&date));
 
 		if((allItems[i].actualHumanPlayers > 1) != multi) //if multi mode then only multi games, otherwise single
 		{
@@ -1016,13 +1017,11 @@ void SelectionTab::parseGames(std::vector<FileInfo> &files, bool multi)
 	}
 }
 
-void SelectionTab::parseCampaigns( std::vector<FileInfo> & files )
+void SelectionTab::parseCampaigns( std::vector<CFileInfo> & files )
 {
 	for(int i=0; i<files.size(); i++)
 	{
-		//allItems[i].date = std::asctime(std::localtime(&files[i].date));
-		allItems[i].filename = files[i].name;
-		allItems[i].lodCmpgn = files[i].inLod;
+		allItems[i].filename = files[i].getName();
 		allItems[i].campaignInit();
 	}
 }
@@ -1061,24 +1060,19 @@ SelectionTab::SelectionTab(CMenuScreen::EState Type, const boost::function<void(
 	}
 	else
 	{
-		std::vector<FileInfo> toParse;
+		std::vector<CFileInfo> toParse;
 		std::vector<CCampaignHeader> cpm;
 		switch(tabType)
 		{
 		case CMenuScreen::newGame:
-			getFiles(toParse, GameConstants::DATA_DIR + "/Maps", "h3m"); //get all maps
-			/* Load maps from user directory too, unless it is also the
-			 * same as the data directory (as is the case on
-			 * windows). */
-			if (GVCMIDirs.UserPath != GameConstants::DATA_DIR)
-				getFiles(toParse, GVCMIDirs.UserPath + "/Maps", "h3m"); //get all maps
+			getFiles(toParse, "Maps/", EResType::MAP); //get all maps
 			parseMaps(toParse);
 			positions = 18;
 			break;
 
 		case CMenuScreen::loadGame:
 		case CMenuScreen::saveGame:
-			getFiles(toParse, GVCMIDirs.UserPath + "/Games", "vlgm1"); //get all saves
+			getFiles(toParse, "Games/", EResType::SAVEGAME); //get all saves
 			parseGames(toParse, MultiPlayer);
 			if(tabType == CMenuScreen::loadGame)
 			{
@@ -1092,18 +1086,13 @@ SelectionTab::SelectionTab(CMenuScreen::EState Type, const boost::function<void(
 				txt = new CTextInput(Rect(32, 539, 350, 20), Point(-32, -25), "GSSTRIP.bmp", 0);
 			break;
 		case CMenuScreen::campaignList:
-			getFiles(toParse, GameConstants::DATA_DIR + "/Maps", "h3c"); //get all campaigns
-			for (int g=0; g<toParse.size(); ++g)
-			{
-				toParse[g].inLod = false;
-			}
+			getFiles(toParse, "Maps/", EResType::CAMPAIGN); //get all campaigns
+
 			//add lod cmpgns
 			cpm = CCampaignHandler::getCampaignHeaders(CCampaignHandler::Custom);
 			for (int g = 0; g < cpm.size(); g++)
 			{
-				FileInfo fi;
-				fi.inLod = cpm[g].loadFromLod;
-				fi.name = cpm[g].filename;
+				CFileInfo fi(cpm[g].filename);
 				toParse.push_back(fi);
 				if (cpm[g].loadFromLod)
 				{

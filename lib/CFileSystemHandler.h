@@ -27,88 +27,74 @@ public:
 	CMemoryStream & operator=(const CMemoryStream & cpy);
 	~CMemoryStream() { delete[] data; }
 
-	inline bool moreBytesToRead() const;
-	inline size_t getLength() const;
-	inline void reset();
-	inline size_t getSeekPos() const;
-	inline void setSeekPos(size_t pos);
+	bool moreBytesToRead() const;
+	size_t getLength() const;
+	void reset();
+	size_t getSeekPos() const;
+	void setSeekPos(size_t pos);
 	
-	inline ui8 readInt8();
-	inline ui16 readInt16();
-	inline ui32 readInt32();
+	ui8 readInt8();
+	ui16 readInt16();
+	ui32 readInt32();
 	
 	// Gets raw ui8 pointer of data. Do not delete that data. Ownership belongs to CMemoryStream.
-	inline ui8 * getRawData();
+	ui8 * getRawData();
 	std::string getDataAsString() const { std::string rslt(data, data + length); return rslt; }
 	void writeToFile(const std::string & destFile) const;
 };
 
-// A simple struct which can identify several resources which belong together
-struct DLL_LINKAGE ResourceIdentifier
+class DLL_LINKAGE CFileInfo
 {
-	// Resource name (for example "DATA/MAINMENU")
-	// No extension so .pcx and .png can override each other, always in upper case
-	const std::string name;
+	// Original URI(not modified) e.g. ./dir/foo.txt
+	std::string name;
 
-	// resource type, (FILE_IMAGE), required to prevent conflicts if files with different type (text and image)
-	// have same basename (we had this problem with garrison.txt and garrison.pcx in h3bitmap.lod)
-	const EResType::EResType type;
+	// Timestamp of file
+	std::time_t date;
 
-	ResourceIdentifier(const std::string & Name, const EResType::EResType Type) 
-		: name(Name), type(Type) { };
+	// Exact location of the file, can be used to load files with filesystemhandler directly
+	ResourceLocator locator;
 
-	inline bool operator==(ResourceIdentifier const & other) const
-	{
-		return name == other.name && type == other.type;
-	}
+public:
+	std::string getName() const;
+	
+	// Path to file e.g. ./dir/subdir/
+	std::string getPath() const;
 
-	inline friend std::size_t hash_value(ResourceIdentifier const & p)
-	{
-		std::size_t seed = 0;
-		boost::hash_combine(seed, p.name);
-		boost::hash_combine(seed, p.type);
+	// File extension with dot e.g. '.BMP'
+	std::string getExtension() const;
+	
+	// File name e.g. foo.txt
+	std::string getFilename() const;
 
-		return seed;
-	}
-}; 
+	// File name without extension e.g. foo
+	std::string getStem() const;
 
-// A simple struct which represents the exact position of a resource
-// Needed for loading resources
-struct DLL_LINKAGE ResourceLocator
-{
-	// interface that does actual resource loading
-	IResourceLoader * loader;
+	// Extension type as enum
+	EResType::EResType getType() const;
+	
+	// Locator object for loading resource directly
+	ResourceLocator getLocator() const;
+	
+	// Get timestamp from file
+	std::time_t getDate() const;
 
-	// name of resource (e.g. garrison.txt or /Sprites/Bla.png)
-	std::string resourceName;
-
-	ResourceLocator() : loader(NULL), resourceName("") { };
-	ResourceLocator(IResourceLoader * Loader, const std::string & ResourceName) 
-		: loader(Loader), resourceName(ResourceName) { };
-
-	inline bool operator==(ResourceLocator const & other) const
-	{
-		return loader == other.loader && resourceName == other.resourceName;
-	}
-
-	inline friend std::size_t hash_value(ResourceLocator const & p)
-	{
-		std::size_t seed = 0;
-		boost::hash_combine(seed, p.loader);
-		boost::hash_combine(seed, p.resourceName);
-
-		return seed;
-	}
+	explicit CFileInfo(const std::string & Name, std::time_t Date = 0, 
+		ResourceLocator Locator = ResourceLocator()) : name(Name), date(Date), locator(Locator) { };
 };
 
 // Interface for general resource loaders
 class DLL_LINKAGE IResourceLoader
 {
 protected:
-	// Prefix would be: DATA/... or SPRITES/... e.g.
-	const std::string prefix;
+	// Prefix would be: DATA/... or SPRITES/... e.g. 
+	// The last character has always to be a slash
+	std::string prefix;
 
-	explicit IResourceLoader(const std::string & Prefix) : prefix(Prefix) {  }
+	// Folder name of the resource relative from VCMI_DIR 
+	// e.g. ./Data/H3bitmap.lod for lod, ./Maps for filesystem(no ending slash)
+	const std::string folder;
+
+	explicit IResourceLoader(const std::string & Folder, const std::string & Prefix);
 
 	// Adds a detected resource to the global map
 	void addResourceToMap(TResourcesMap map, const ResourceIdentifier & identifier, const ResourceLocator & locator);
@@ -122,7 +108,12 @@ public:
 	// Loads a resource with the given resource name
 	virtual TMemoryStreamPtr loadResource(const std::string & resourceName) =0;
 
+	// Get timestamp from file
+	virtual std::time_t getTimestampFromFile(const std::string & resourceName) const { return 0; }
+
 	virtual ~IResourceLoader() { }
+
+	std::string getFolder() const;
 };
 
 // Interface for general archive loaders
@@ -153,11 +144,10 @@ protected:
 		ArchiveEntry() : name(""), type(EResType::OTHER), offset(0), realSize(0), size(0) {};
 	};
 
-	const std::string archiveFile;
-	std::map<std::string, const ArchiveEntry> entries;
+	boost::unordered_map<std::string, const ArchiveEntry> entries;
 
 	IArchiveLoader(const std::string & ArchiveFile, const std::string & Prefix) 
-		: IResourceLoader(Prefix), archiveFile(ArchiveFile) { };
+		: IResourceLoader(ArchiveFile, Prefix) { };
 };
 
 // Responsible for loading resources from lod archives
@@ -183,14 +173,13 @@ public:
 // Responsible for loading files from filesystem
 class DLL_LINKAGE CFileResourceLoader : public IResourceLoader
 {
-	const std::string pathToFolder;
-
 public:
 	CFileResourceLoader(const std::string & PathToFolder, const std::string & Prefix) 
-		: IResourceLoader(Prefix), pathToFolder(PathToFolder) { };
+		: IResourceLoader(PathToFolder, Prefix) { };
 
 	void insertEntriesIntoResourcesMap(TResourcesMap & map);
 	TMemoryStreamPtr loadResource(const std::string & resourceName);
+	std::time_t getTimestampFromFile(const std::string & resourceName) const;
 };
 
 class DLL_LINKAGE CMediaResourceHandler : public IArchiveLoader
@@ -248,6 +237,9 @@ public:
 	// resource from LOD/first loaded or last inserted resource
 	TMemoryStreamPtr getResource(const ResourceIdentifier & identifier, bool fromBegin = false, bool unpackResource = false);
 	
+	// Get a resource with locator object directly.
+	TMemoryStreamPtr getResource(const ResourceLocator & locator, bool unpackResource = false);
+
 	// Get a resource as a string(not shared, can be easily altered) with the given identifier and a flag, 
 	// whether to load resource from LOD/first loaded or last inserted resource
 	std::string getResourceAsString(const ResourceIdentifier & identifier, bool fromBegin = false);
@@ -258,10 +250,11 @@ public:
 
 	void writeMemoryStreamToFile(TMemoryStreamPtr memStream, const std::string & destFile) const;
 
+	// Get all files with given prefix and resource type.
+	void getFilesWithExt(std::vector<CFileInfo> & out, const std::string & prefix, const EResType::EResType & type);
+
+	const TResourcesMap & getResourcesMap() const;
+
 	// Helper method: Converts a filename ext to EResType enum
 	static EResType::EResType convertFileExtToResType(const std::string & fileExt);
-	
-	// Helper method: Converts a resource name to uppercase and returns a pair of strings where the 1.value is
-	// the raw resource name and the 2.value is the extension name (with preceding dot)
-	static std::pair<std::string, std::string> adaptResourceName(const std::string & resName);
 };

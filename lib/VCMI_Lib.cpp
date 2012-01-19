@@ -14,6 +14,8 @@
 #include "CGeneralTextHandler.h"
 #include "IGameEventsReceiver.h"
 #include "CStopWatch.h"
+#include "CFileSystemHandler.h"
+#include "VCMIDirs.h"
 
 /*
  * VCMI_Lib.cpp, part of VCMI engine
@@ -159,9 +161,42 @@ DLL_LINKAGE void loadToIt(si32 &dest, const std::string &src, int &iter, int mod
 	dest = atol(pom.c_str());
 }
 
+void LibClasses::initFileSystem()
+{
+	namespace gc = GameConstants;
+
+	const std::string dataPath = gc::DATA_DIR + gc::PATH_SEPARATOR + 
+		"DATA" + gc::PATH_SEPARATOR;
+	
+	// Load DATA
+	filesystemh->addHandler(new CLodResourceLoader(dataPath + "H3bitmap.lod", "DATA/"));
+	
+	// Load MAPS/CAMPAIGNS
+	filesystemh->addHandler(new CFileResourceLoader(gc::DATA_DIR + gc::PATH_SEPARATOR + 
+		"Maps", "MAPS/"));
+
+	// Load maps from user directory too, unless it is also the
+	// same as the data directory (as is the case on windows). 
+	if (GVCMIDirs.UserPath != GameConstants::DATA_DIR)
+	{
+		filesystemh->addHandler(new CFileResourceLoader(GVCMIDirs.UserPath + gc::PATH_SEPARATOR + 
+			"Maps", "MAPS/"));
+	}
+
+	// Load SAVEGAMES
+	filesystemh->addHandler(new CFileResourceLoader(gc::DATA_DIR + gc::PATH_SEPARATOR + 
+		"Games", "GAMES/"));
+
+	// TODO
+}
+
 void LibClasses::init()
 {
 	CStopWatch pomtime;
+	
+	filesystemh = new CFileSystemHandler;
+	initFileSystem();
+	tlog0 << "\tFile system handler: " << pomtime.getDiff() << std::endl;
 
 	generaltexth = new CGeneralTextHandler;
 	generaltexth->load();
@@ -215,6 +250,7 @@ void LibClasses::clear()
 	delete dobjinfo;
 	delete buildh;
 	delete spellh;
+	delete filesystemh;
 	makeNull();
 }
 
@@ -229,6 +265,7 @@ void LibClasses::makeNull()
 	dobjinfo = NULL;
 	buildh = NULL;
 	spellh = NULL;
+	filesystemh = NULL;
 }
 
 LibClasses::LibClasses()

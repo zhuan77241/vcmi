@@ -54,7 +54,7 @@ public:
 /*
  * Base class for images, can be used for non-animation pictures as well
  */
-class IImage
+class IImageD
 {
 	int refCount;
 public:
@@ -70,14 +70,14 @@ public:
 	virtual void playerColored(int player)=0;
 	virtual int width() const=0;
 	virtual int height() const=0;
-	IImage();
-	virtual ~IImage() {};
+	IImageD();
+	virtual ~IImageD() {};
 };
 
 /*
  * Wrapper around SDL_Surface
  */
-class SDLImage : public IImage
+class SDLImageD : public IImageD
 {
 public:
 	//Surface without empty borders
@@ -89,12 +89,12 @@ public:
 
 public:
 	//Load image from def file
-	SDLImage(CDefFile *data, size_t frame, size_t group=0, bool compressed=false);
+	SDLImageD(CDefFile *data, size_t frame, size_t group=0, bool compressed=false);
 	//Load from bitmap file
-	SDLImage(std::string filename, bool compressed=false);
+	SDLImageD(std::string filename, bool compressed=false);
 	//Create using existing surface, extraRef will increase refcount on SDL_Surface
-	SDLImage(SDL_Surface * from, bool extraRef);
-	~SDLImage();
+	SDLImageD(SDL_Surface * from, bool extraRef);
+	~SDLImageD();
 
 	void draw(SDL_Surface *where, int posX=0, int posY=0, Rect *src=NULL,  ui8 alpha=255) const;
 	void playerColored(int player);
@@ -116,7 +116,7 @@ public:
  *  2nd byte = size of segment
  *  raw data (if any)
  */
-class CompImage : public IImage
+class CompImage : public IImageD
 {
 	//x,y - margins, w,h - sprite size
 	Rect sprite;
@@ -159,7 +159,7 @@ private:
 	std::map<size_t, std::vector <JsonNode> > source;
 
 	//bitmap[group][position], store objects with loaded bitmaps
-	std::map<size_t, std::map<size_t, IImage* > > images;
+	std::map<size_t, std::map<size_t, IImageD* > > images;
 
 	//animation file name
 	std::string name;
@@ -184,7 +184,7 @@ private:
 
 	//not a very nice method to get image from another def file
 	//TODO: remove after implementing resource manager
-	IImage * getFromExtraDef(std::string filename);
+	IImageD * getFromExtraDef(std::string filename);
 
 public:
 
@@ -200,7 +200,7 @@ public:
 	void setCustom(std::string filename, size_t frame, size_t group=0);
 
 	//get pointer to image from specific group, NULL if not found
-	IImage * getImage(size_t frame, size_t group=0, bool verbose=true) const;
+	IImageD * getImage(size_t frame, size_t group=0, bool verbose=true) const;
 
 	//all available frames
 	void load  ();

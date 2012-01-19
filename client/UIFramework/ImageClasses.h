@@ -23,7 +23,7 @@ class IImage
 {
 public:
 	// Loads an image from memory.
-	// Params: imageType		E.g.: PCX, TGA, BMP
+	// Params: imageType		E.g.: PCX, TGA, BMP, DEF
 	virtual void load(TMemoryStreamPtr data, const std::string &imageType) =0;
 	
 	// draws image on surface "where" at position
@@ -32,6 +32,8 @@ public:
 	virtual int width() const=0;
 	virtual int height() const=0;
 	virtual ~IImage() {};
+
+	static IImage * createInstance(TMemoryStreamPtr data, const std::string &imageType, bool useComp = false);
 };
 
 /*
@@ -94,11 +96,14 @@ public:
 	void draw(IImage * where, int posX = 0, int posY = 0, Rect * src = NULL,  ui8 alpha = 255) const;
 	int width() const;
 	int height() const;
-	inline SDL_Surface * getSDL_Surface() const;
+	
+	// Get raw pointer to SDL surface. It's only needed for SDL related tasks.
+	SDL_Surface * getSDL_Surface() const;
 
 	void recolorToPlayer(int player);
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha);
 	void rotate(EImageRotation::EImageRotation rotation);
 
 	friend class SDLImageLoader;
+	friend class SDLImage;
 };

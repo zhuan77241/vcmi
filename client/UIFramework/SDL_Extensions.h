@@ -195,7 +195,7 @@ namespace CSDL_Ext
 	void applyEffect(SDL_Surface * surf, const SDL_Rect * rect, int mode); //mode: 0 - sepia, 1 - grayscale
 
 	// Converts a H3 PCX image to a SDL_Surface
-	SDL_Surface * convertFromPCX(TMemoryStreamPtr data);
+	SDL_Surface * convertPCXToSDL(TMemoryStreamPtr data);
 
 	// Loads an image from memory.
 	// Params: imageType		E.g.: PCX, TGA, BMP

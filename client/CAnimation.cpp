@@ -24,12 +24,12 @@ extern DLL_LINKAGE CLodHandler *spriteh;
 extern DLL_LINKAGE CLodHandler *bitmaph;
 
 typedef std::map <size_t, std::vector <JsonNode> > source_map;
-typedef std::map<size_t, IImage* > image_map;
+typedef std::map<size_t, IImageD* > image_map;
 typedef std::map<size_t, image_map > group_map;
 
 class SDLImageLoader
 {
-	SDLImage * image;
+	SDLImageD * image;
 	ui8 * lineStart;
 	ui8 * position;
 public:
@@ -41,7 +41,7 @@ public:
 	//init image with these sizes and palette
 	inline void init(Point SpriteSize, Point Margins, Point FullSize, SDL_Color *pal);
 
-	SDLImageLoader(SDLImage * Img);
+	SDLImageLoader(SDLImageD * Img);
 	~SDLImageLoader();
 };
 
@@ -290,7 +290,7 @@ const std::map<size_t, size_t > CDefFile::getEntries() const
  *  Classes for image loaders - helpers for loading from def files       *
  *************************************************************************/
 
-SDLImageLoader::SDLImageLoader(SDLImage * Img):
+SDLImageLoader::SDLImageLoader(SDLImageD * Img):
 	image(Img),
 	lineStart(NULL),
 	position(NULL)
@@ -521,31 +521,31 @@ CompImageLoader::~CompImageLoader()
  *  Classes for images, support loading from file and drawing on surface *
  *************************************************************************/
 
-IImage::IImage():
+IImageD::IImageD():
 	refCount(1)
 {
 
 }
 
-bool IImage::decreaseRef()
+bool IImageD::decreaseRef()
 {
 	refCount--;
 	return refCount <= 0;
 }
 
-void IImage::increaseRef()
+void IImageD::increaseRef()
 {
 	refCount++;
 }
 
-SDLImage::SDLImage(CDefFile *data, size_t frame, size_t group, bool compressed):
+SDLImageD::SDLImageD(CDefFile *data, size_t frame, size_t group, bool compressed):
 	surf(NULL)
 {
 	SDLImageLoader loader(this);
 	data->loadFrame(frame, group, loader);
 }
 
-SDLImage::SDLImage(SDL_Surface * from, bool extraRef):
+SDLImageD::SDLImageD(SDL_Surface * from, bool extraRef):
 	margins(0,0)
 {
 	surf = from;
@@ -555,7 +555,7 @@ SDLImage::SDLImage(SDL_Surface * from, bool extraRef):
 	fullSize.y = surf->h;
 }
 
-SDLImage::SDLImage(std::string filename, bool compressed):
+SDLImageD::SDLImageD(std::string filename, bool compressed):
 	margins(0,0)
 {
 	surf = BitmapHandler::loadBitmap(filename);
@@ -588,7 +588,7 @@ SDLImage::SDLImage(std::string filename, bool compressed):
 	}
 }
 
-void SDLImage::draw(SDL_Surface *where, int posX, int posY, Rect *src, ui8 rotation) const
+void SDLImageD::draw(SDL_Surface *where, int posX, int posY, Rect *src, ui8 rotation) const
 {
 	if (!surf)
 		return;
@@ -604,22 +604,22 @@ void SDLImage::draw(SDL_Surface *where, int posX, int posY, Rect *src, ui8 rotat
 	CSDL_Ext::blitSurface(surf, &sourceRect, where, &destRect);
 }
 
-void SDLImage::playerColored(int player)
+void SDLImageD::playerColored(int player)
 {
 	graphics->blueToPlayersAdv(surf, player);
 }
 
-int SDLImage::width() const
+int SDLImageD::width() const
 {
 	return fullSize.x;
 }
 
-int SDLImage::height() const
+int SDLImageD::height() const
 {
 	return fullSize.y;
 }
 
-SDLImage::~SDLImage()
+SDLImageD::~SDLImageD()
 {
 	SDL_FreeSurface(surf);
 }
@@ -849,7 +849,7 @@ CompImage::~CompImage()
  *  CAnimation for animations handling, can load part of file if needed  *
  *************************************************************************/
 
-IImage * CAnimation::getFromExtraDef(std::string filename)
+IImageD * CAnimation::getFromExtraDef(std::string filename)
 {
 	size_t pos = filename.find(':');
 	if (pos == -1)
@@ -865,7 +865,7 @@ IImage * CAnimation::getFromExtraDef(std::string filename)
 		frame = atoi(filename.c_str()+pos);
 	}
 	anim.load(frame ,group);
-	IImage * ret = anim.images[group][frame];
+	IImageD * ret = anim.images[group][frame];
 	anim.images.clear();
 	return ret;
 }
@@ -878,7 +878,7 @@ bool CAnimation::loadFrame(CDefFile * file, size_t frame, size_t group)
 		return false;
 	}
 
-	IImage *image = getImage(frame, group, false);
+	IImageD *image = getImage(frame, group, false);
 	if (image)
 	{
 		image->increaseRef();
@@ -891,15 +891,15 @@ bool CAnimation::loadFrame(CDefFile * file, size_t frame, size_t group)
 		if (compressed)
 			images[group][frame] = new CompImage(file, frame, group);
 		else
-			images[group][frame] = new SDLImage(file, frame, group);
+			images[group][frame] = new SDLImageD(file, frame, group);
 	}
 	else //load from separate file
 	{
 		std::string filename = source[group][frame].Struct().find("file")->second.String();
 	
-		IImage * img = getFromExtraDef(filename);
+		IImageD * img = getFromExtraDef(filename);
 		if (!img)
-			img = new SDLImage(filename, compressed);
+			img = new SDLImageD(filename, compressed);
 
 		images[group][frame] = img;
 		return true;
@@ -909,7 +909,7 @@ bool CAnimation::loadFrame(CDefFile * file, size_t frame, size_t group)
 
 bool CAnimation::unloadFrame(size_t frame, size_t group)
 {
-	IImage *image = getImage(frame, group, false);
+	IImageD *image = getImage(frame, group, false);
 	if (image)
 	{
 		//decrease ref count for image and delete if needed
@@ -1029,7 +1029,7 @@ void CAnimation::setCustom(std::string filename, size_t frame, size_t group)
 	//FIXME: update image if already loaded
 }
 
-IImage * CAnimation::getImage(size_t frame, size_t group, bool verbose) const
+IImageD * CAnimation::getImage(size_t frame, size_t group, bool verbose) const
 {
 	group_map::const_iterator groupIter = images.find(group);
 	if (groupIter != images.end())
@@ -1150,7 +1150,7 @@ void CAnimImage::init()
 	if (flags & CShowableAnim::BASE)
 		anim->load(0,group);
 	
-	IImage *img = anim->getImage(frame, group);
+	IImageD *img = anim->getImage(frame, group);
 	if (img)
 	{
 		pos.w = img->width();
@@ -1168,7 +1168,7 @@ CAnimImage::~CAnimImage()
 
 void CAnimImage::showAll(SDL_Surface * to)
 {
-	IImage *img = anim->getImage(frame, group);
+	IImageD *img = anim->getImage(frame, group);
 	if (img)
 		img->draw(to, pos.x, pos.y);
 }
@@ -1183,7 +1183,7 @@ void CAnimImage::setFrame(size_t Frame, size_t Group)
 		anim->unload(frame, group);
 		frame = Frame;
 		group = Group;
-		IImage *img = anim->getImage(frame, group);
+		IImageD *img = anim->getImage(frame, group);
 		if (img)
 		{
 			if (flags & CShowableAnim::PLAYER_COLORED)
@@ -1310,7 +1310,7 @@ void CShowableAnim::blitImage(size_t frame, size_t group, SDL_Surface *to)
 {
 	assert(to);
 	Rect src( xOffset, yOffset, pos.w, pos.h);
-	IImage * img = anim.getImage(frame, group);
+	IImageD * img = anim.getImage(frame, group);
 	if (img)
 		img->draw(to, pos.x-xOffset, pos.y-yOffset, &src, alpha);
 }

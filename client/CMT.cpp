@@ -38,6 +38,7 @@
 #include "../lib/CScriptingModule.h"
 #include "../lib/GameConstants.h"
 #include "UIFramework/CGuiHandler.h"
+#include "CResourceHandler.h"
 
 #ifdef _WIN32
 #include "SDL_syswm.h"
@@ -149,6 +150,7 @@ void init()
 
 	initDLL(::console,logfile);
 	const_cast<CGameInfo*>(CGI)->setFromLib();
+	CCS->resh = new CResourceHandler;
 	CCS->soundh->initCreaturesSounds(CGI->creh->creatures);
 	CCS->soundh->initSpellsSounds(CGI->spellh->spells);
 	tlog0<<"Initializing VCMI_Lib: "<<tmh.getDiff()<<std::endl;

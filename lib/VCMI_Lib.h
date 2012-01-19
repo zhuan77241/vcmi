@@ -20,6 +20,7 @@ class CObjectHandler;
 class CDefObjInfoHandler;
 class CTownHandler;
 class CGeneralTextHandler;
+class CFileSystemHandler;
 
 /// Loads and constructs several handlers
 class DLL_LINKAGE LibClasses
@@ -35,12 +36,14 @@ public:
 	CDefObjInfoHandler * dobjinfo;
 	CTownHandler * townh;
 	CGeneralTextHandler * generaltexth;
+	CFileSystemHandler * filesystemh;
 
 	LibClasses(); //c-tor, loads .lods and NULLs handlers
 	void init(); //uses standard config file
 	void clear(); //deletes all handlers and its data
 	void makeNull(); //sets all handler (except of lodhs) pointers to null
-	
+	void initFileSystem(); // load file, lod handlers...
+
 
 	void callWhenDeserializing(); //should be called only by serialize !!!
 	template <typename Handler> void serialize(Handler &h, const int version)

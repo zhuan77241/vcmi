@@ -32,4 +32,5 @@ void CGameInfo::setFromLib()
 	spellh = VLC->spellh;
 	dobjinfo = VLC->dobjinfo;
 	buildh = VLC->buildh;
+	filesystemh = VLC->filesystemh;
 }

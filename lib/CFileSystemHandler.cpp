@@ -1,6 +1,7 @@
 #include "StdInc.h"
 #include "CFileSystemHandler.h"
 
+#include <typeinfo>
 #include "zlib.h"
 #include "vcmi_endian.h"
 #include "VCMIDirs.h"
@@ -8,23 +9,28 @@
 ui8 CMemoryStream::readInt8()
 {
 	assert(seekPos < length);
-	return data[seekPos++];
+	
+	ui8 rslt = *(data + seekPos);
+	++seekPos;
+	return rslt;
 }
 
 ui16 CMemoryStream::readInt16()
 {
 	assert(seekPos < length - 1);
 	
+	ui16 rslt = read_le_u16(data + seekPos);
 	seekPos += 2;
-	return read_le_u16(data);
+	return rslt;
 }
 
 ui32 CMemoryStream::readInt32()
 {
 	assert(seekPos < length - 3);
 
+	ui32 rslt = read_le_u32(data + seekPos);
 	seekPos += 4;
-	return read_le_u32(data);
+	return rslt;
 }
 
 CMemoryStream::CMemoryStream(const std::string & filePath) : data(NULL), seekPos(0), length(0)
@@ -76,44 +82,112 @@ void CMemoryStream::setSeekPos(size_t pos)
 	seekPos = pos;
 }
 
-inline void CMemoryStream::reset()
+void CMemoryStream::reset()
 { 
 	seekPos = 0; 
 }
 
-inline size_t CMemoryStream::getSeekPos() const 
+size_t CMemoryStream::getSeekPos() const 
 { 
 	return seekPos; 
 }
 
-inline size_t CMemoryStream::getLength() const 
+size_t CMemoryStream::getLength() const 
 { 
 	return length; 
 }
 
-inline bool CMemoryStream::moreBytesToRead() const 
+bool CMemoryStream::moreBytesToRead() const 
 { 
 	return seekPos < length; 
 }
 
+std::string CFileInfo::getName() const
+{
+	return name;
+}
+
+std::string CFileInfo::getPath() const
+{
+	size_t found = name.find_last_of("/\\");
+	return name.substr(0, found);
+}
+
+std::string CFileInfo::getExtension() const
+{
+	// Get position of file extension dot
+	size_t dotPos = name.find_last_of("/.");
+
+	if(dotPos != std::string::npos && name[dotPos] == '.')
+		return name.substr(dotPos);
+	else
+		return "";
+}
+
+std::string CFileInfo::getFilename() const
+{
+	size_t found = name.find_last_of("/\\");
+	return name.substr(found + 1);
+}
+
+std::string CFileInfo::getStem() const
+{
+	std::string rslt = name;
+
+	// Remove file extension
+	size_t dotPos = name.find_last_of("/.");
+
+	if(dotPos != std::string::npos && name[dotPos] == '.')
+		rslt.erase(dotPos);
+	
+	// Remove path
+	size_t found = rslt.find_last_of("/\\");
+	return rslt.substr(found + 1);
+}
+
+EResType::EResType CFileInfo::getType() const
+{
+	return CFileSystemHandler::convertFileExtToResType(getExtension());
+}
+
+std::time_t CFileInfo::getDate() const
+{
+	return date;
+}
+
 void IResourceLoader::addEntryToMap(TResourcesMap & map, const std::string & name)
 {
-	std::pair<std::string, std::string> resData = CFileSystemHandler::adaptResourceName(name);
-	EResType::EResType extType = CFileSystemHandler::convertFileExtToResType(resData.second);
-	ResourceIdentifier ident(prefix + resData.first, extType);
+	CFileInfo resData(name);
+	ResourceIdentifier ident(prefix + resData.getStem(), resData.getType());
 	ResourceLocator locator(this, name);
 	map[ident].push_back(locator);
+}
+
+IResourceLoader::IResourceLoader(const std::string & Folder, const std::string & Prefix) : folder(Folder)
+{
+	assert(Prefix != "" && Folder != "");
+
+	// Prefix should always end with a slash
+	assert(Prefix[Prefix.length() - 1] == '/' && Folder[Folder.length() - 1] != GameConstants::PATH_SEPARATOR);
+
+	prefix.resize(Prefix.length());
+	std::transform(Prefix.begin(), Prefix.end(), prefix.begin(), toupper);
+}
+
+std::string IResourceLoader::getFolder() const
+{
+	return folder;
 }
 
 void CLodResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
 {
 	// Open LOD file
 	std::ifstream LOD;
-	LOD.open(archiveFile.c_str(), std::ios::in | std::ios::binary);
+	LOD.open(folder.c_str(), std::ios::in | std::ios::binary);
 
 	if(!LOD.is_open()) 
 	{
-		tlog1 << "Cannot open " << archiveFile << std::endl;
+		tlog1 << "Cannot open " << folder << std::endl;
 		return;
 	}
 
@@ -127,7 +201,7 @@ void CLodResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
 	LOD.seekg(0x5c, std::ios::beg);
 	if(!LOD)
 	{
-		tlog2 << archiveFile << " doesn't store anything!\n";
+		tlog2 << folder << " doesn't store anything!\n";
 		return;
 	}
 
@@ -149,11 +223,10 @@ void CLodResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
 	{
 		// Create lod entry with correct name, converted file ext, offset, size,...
 		ArchiveEntry entry;
-		std::pair<std::string, std::string> lodName = CFileSystemHandler::adaptResourceName(lodEntries[i].filename);
-		std::string fileExt = lodName.second;
+		CFileInfo lodName(lodEntries[i].filename);
 
-		entry.name = lodName.first;
-		entry.type = CFileSystemHandler::convertFileExtToResType(fileExt);
+		entry.name = lodName.getStem();
+		entry.type = lodName.getType();
 		entry.offset= SDL_SwapLE32(lodEntries[i].offset);
 		entry.realSize = SDL_SwapLE32(lodEntries[i].uncompressedSize);
 		entry.size = SDL_SwapLE32(lodEntries[i].size);
@@ -174,7 +247,7 @@ void CLodResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
 
 TMemoryStreamPtr CLodResourceLoader::loadResource(const std::string & resourceName)
 {
-	assert(entries.find(resourceName) == entries.end());
+	assert(entries.find(resourceName) != entries.end());
 
 	const ArchiveEntry entry = entries[resourceName];
 
@@ -182,7 +255,7 @@ TMemoryStreamPtr CLodResourceLoader::loadResource(const std::string & resourceNa
 	TMemoryStreamPtr rslt;
 
 	std::ifstream LOD;
-	LOD.open(archiveFile.c_str(), std::ios::in | std::ios::binary);
+	LOD.open(folder.c_str(), std::ios::in | std::ios::binary);
 	
 	//file is not compressed
 	if (entry.size == 0) 
@@ -190,7 +263,7 @@ TMemoryStreamPtr CLodResourceLoader::loadResource(const std::string & resourceNa
 		outp = new ui8[entry.realSize];
 
 		LOD.seekg(entry.offset, std::ios::beg);
-		LOD.read((char*)outp, entry.realSize);
+		LOD.read(reinterpret_cast<char *>(outp), entry.realSize);
 		rslt = shared_ptr<CMemoryStream>(new CMemoryStream(outp, entry.realSize));
 		return rslt;
 	}
@@ -200,14 +273,15 @@ TMemoryStreamPtr CLodResourceLoader::loadResource(const std::string & resourceNa
 		outp = new ui8[entry.size];
 
 		LOD.seekg(entry.offset, std::ios::beg);
-		LOD.read((char*)outp, entry.size);
+		LOD.read(reinterpret_cast<char *>(outp), entry.size);
 		ui8 * decomp = NULL;
-		if (!decompressFile(outp, entry.size, entry.realSize, decomp))
+
+		if (decompressFile(outp, entry.size, entry.realSize, decomp))
 		{
 			tlog1 << "File decompression wasn't successful. Resource name: " << resourceName << std::endl;
 		}
 		delete[] outp;
-		
+
 		rslt = shared_ptr<CMemoryStream>(new CMemoryStream(decomp, entry.realSize));
 		return rslt;
 	}
@@ -282,10 +356,10 @@ bool CLodResourceLoader::decompressFile(ui8 * in, int size, int realSize, ui8 *&
 void CFileResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
 {
 	boost::filesystem::recursive_directory_iterator enddir;
-	if(boost::filesystem::exists(pathToFolder))
+	if(boost::filesystem::exists(folder))
 	{
 		std::vector<std::string> path;
-		for (boost::filesystem::recursive_directory_iterator dir(pathToFolder); dir!=enddir; dir++)
+		for (boost::filesystem::recursive_directory_iterator dir(folder); dir!=enddir; dir++)
 		{
 			//If a directory was found - add name to vector to recreate full path later
 			if (boost::filesystem::is_directory(dir->status()))
@@ -307,8 +381,8 @@ void CFileResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
 	}
 	else
 	{
-		if(!pathToFolder.empty())
-			tlog1 << "Warning: No " + pathToFolder + "/ folder!" << std::endl;
+		if(!folder.empty())
+			tlog1 << "Warning: No " + folder + " folder!" << std::endl;
 	}
 }
 
@@ -321,12 +395,17 @@ TMemoryStreamPtr CFileResourceLoader::loadResource(const std::string & resourceN
 	return rslt;
 }
 
+std::time_t CFileResourceLoader::getTimestampFromFile(const std::string & resourceName) const
+{
+	return boost::filesystem::last_write_time(folder + GameConstants::PATH_SEPARATOR + resourceName);
+}
+
 void CSoundResourceHandler::insertEntriesIntoResourcesMap(TResourcesMap & map)
 {
-	std::ifstream fileHandle(archiveFile.c_str(), std::ios::in | std::ios::binary);
+	std::ifstream fileHandle(folder.c_str(), std::ios::in | std::ios::binary);
 	if (!fileHandle.good())
 	{
-		tlog1 << "File " << archiveFile << " couldn't be opened" << std::endl;
+		tlog1 << "File " << folder << " couldn't be opened" << std::endl;
 		return;
 	}
 
@@ -366,10 +445,10 @@ void CSoundResourceHandler::insertEntriesIntoResourcesMap(TResourcesMap & map)
 void CVideoResourceHandler::insertEntriesIntoResourcesMap(TResourcesMap & map)
 {
 	// Open archive file
-	std::ifstream fileHandle(archiveFile.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
+	std::ifstream fileHandle(folder.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
 	if (!fileHandle.good())
 	{
-		tlog1 << "File " << archiveFile << " couldn't be opened" << std::endl;
+		tlog1 << "File " << folder << " couldn't be opened" << std::endl;
 		return;
 	}
 	
@@ -377,7 +456,7 @@ void CVideoResourceHandler::insertEntriesIntoResourcesMap(TResourcesMap & map)
 	size_t fileSize = fileHandle.tellg();
 	if(fileSize < 48)
 	{
-		tlog1 << archiveFile << " doesn't contain needed data!\n";
+		tlog1 << folder << " doesn't contain needed data!\n";
 		return;
 	}
 	fileHandle.seekg(0);
@@ -422,17 +501,17 @@ void CVideoResourceHandler::insertEntriesIntoResourcesMap(TResourcesMap & map)
 
 TMemoryStreamPtr CMediaResourceHandler::loadResource(const std::string & resourceName)
 {
-	assert(entries.find(resourceName) == entries.end());
+	assert(entries.find(resourceName) != entries.end());
 
 	const ArchiveEntry entry = entries[resourceName];
 
 	TMemoryStreamPtr rslt;
 
 	std::ifstream fileHandle;
-	fileHandle.open(archiveFile.c_str(), std::ios::in | std::ios::binary);
+	fileHandle.open(folder.c_str(), std::ios::in | std::ios::binary);
 	if (!fileHandle.good())
 	{
-		tlog1 << "Archive file " << archiveFile << " is corrupt." << std::endl;
+		tlog1 << "Archive file " << folder << " is corrupt." << std::endl;
 		return rslt;
 	}
 	
@@ -474,36 +553,17 @@ EResType::EResType CFileSystemHandler::convertFileExtToResType(const std::string
 		(".JSON", TEXT)(".DEF", ANIMATION)(".MSK", MASK)(".MSG", MASK)
 		(".H3C", CAMPAIGN)(".H3M", MAP)(".FNT", FONT)(".BMP", GRAPHICS)
 		(".JPG", GRAPHICS)(".PCX", GRAPHICS)(".PNG", GRAPHICS)(".TGA", GRAPHICS)
-		(".WAV", SOUND)(".SMK", VIDEO)(".BIK", VIDEO);
+		(".WAV", SOUND)(".SMK", VIDEO)(".BIK", VIDEO)(".VLGM1", SAVEGAME);
 
 	// Convert file ext(string) to resource type(enum)
-	std::map<std::string, ::EResType::EResType>::const_iterator it = extMap.find(fileExt);
+	std::string fileExtUpper = fileExt;
+	std::transform(fileExt.begin(), fileExt.end(), fileExtUpper.begin(), toupper);
+	std::map<std::string, ::EResType::EResType>::const_iterator it = extMap.find(fileExtUpper);
 	if(it == extMap.end())
 		return OTHER;
 	else
 		return it->second;
 }
-
-std::pair<std::string, std::string> CFileSystemHandler::adaptResourceName(const std::string & resName)
-{
-	std::string fileNameNew, fileExtNew;
-
-	// Convert fileName to uppercase
-	std::transform(resName.begin(), resName.end(), fileNameNew.begin(), toupper);
-
-	// Get position of file extension dot
-	size_t dotPos = fileNameNew.find_last_of("/.");
-
-	if(dotPos != std::string::npos && fileNameNew[dotPos] == '.')
-	{
-		// Set name and ext correctly
-		fileExtNew = fileNameNew.substr(dotPos);
-		fileNameNew.erase(dotPos);
-	}
-
-	return std::make_pair(fileNameNew, fileExtNew);
-}
-
 
 TMemoryStreamPtr CFileSystemHandler::getResource(const ResourceIdentifier & identifier, bool fromBegin /*=false */, bool unpackResource /*=false */)
 {
@@ -517,11 +577,9 @@ TMemoryStreamPtr CFileSystemHandler::getResource(const ResourceIdentifier & iden
 		return rslt;
 	}
 	
-	// get last inserted resource locator (default behavior)
-	std::list<ResourceLocator> locators = resources.at(identifier);
-	
 	// get former/origin resource e.g. from lod with fromBegin=true 
 	// and get the latest inserted resource with fromBegin=false
+	std::list<ResourceLocator> locators = resources.at(identifier);
 	ResourceLocator loc;
 	if (!fromBegin)
 		loc = locators.back();
@@ -542,6 +600,29 @@ TMemoryStreamPtr CFileSystemHandler::getResource(const ResourceIdentifier & iden
 		return addResource(loc, unpackResource);
 	}
 		
+	// already loaded, just return resource
+	rslt = shared_ptr<CMemoryStream>(ptr);
+	return rslt;
+}
+
+TMemoryStreamPtr CFileSystemHandler::getResource(const ResourceLocator & locator, bool unpackResource /*= false*/)
+{
+	TMemoryStreamPtr rslt;
+
+	// check if resource is already loaded
+	if(memoryStreams.find(locator) == memoryStreams.end())
+	{
+		// load it
+		return addResource(locator, unpackResource);
+	}
+
+	weak_ptr<CMemoryStream> ptr = memoryStreams.at(locator);
+	if (ptr.expired())
+	{
+		// load it
+		return addResource(locator, unpackResource);
+	}
+
 	// already loaded, just return resource
 	rslt = shared_ptr<CMemoryStream>(ptr);
 	return rslt;
@@ -639,4 +720,41 @@ TMemoryStreamPtr CFileSystemHandler::getUnpackedFile(const std::string & path) c
 void CFileSystemHandler::writeMemoryStreamToFile(TMemoryStreamPtr memStream, const std::string & destFile) const
 {
 	memStream->writeToFile(destFile);
+}
+
+const TResourcesMap & CFileSystemHandler::getResourcesMap() const
+{
+	return resources;
+}
+
+void CFileSystemHandler::getFilesWithExt(std::vector<CFileInfo> & out, const std::string & prefix, const EResType::EResType & type)
+{
+	namespace fs = boost::filesystem;
+
+	for(TResourcesMap::iterator it = resources.begin(); it != resources.end(); ++it)
+	{
+		// Get all keys with the given prefix and resource type
+		std::pair<ResourceIdentifier, std::list<ResourceLocator> > key = *it;
+		ResourceIdentifier ident = key.first;
+		size_t found = ident.name.find_last_of("/");
+		std::string identPrefix = ident.name.substr(0, found + 1);
+		std::string prefixUpper = prefix;
+		std::transform(prefix.begin(), prefix.end(), prefixUpper.begin(), toupper);
+		if(ident.type == type && identPrefix == prefixUpper)
+		{
+			std::list<ResourceLocator> locatorList = key.second;
+			
+			for(std::list<ResourceLocator>::iterator it2 = locatorList.begin(); it2 != locatorList.end(); ++it2)
+			{
+				ResourceLocator locator = *it2;
+				
+				time_t date = locator.loader->getTimestampFromFile(locator.resourceName);
+				std::string file = locator.loader->getFolder() + GameConstants::PATH_SEPARATOR 
+					+ locator.resourceName;
+				
+				CFileInfo fileInfo(file, date, locator);
+				out.push_back(fileInfo);
+			}
+		}
+	}
 }

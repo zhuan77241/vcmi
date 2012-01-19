@@ -29,7 +29,7 @@ class CConnection;
 class JsonNode;
 struct CPackForSelectionScreen;
 struct PlayerInfo;
-struct FileInfo;
+class CFileInfo;
 
 namespace boost{ class thread; class recursive_mutex;}
 
@@ -140,10 +140,10 @@ class SelectionTab : public CIntObject
 private:
 	CDefHandler *format; //map size
 
-	void parseMaps(std::vector<FileInfo> &files, int start = 0, int threads = 1);
-	void parseGames(std::vector<FileInfo> &files, bool multi);
-	void parseCampaigns( std::vector<FileInfo> & files );
-	void getFiles(std::vector<FileInfo> &out, const std::string &dirname, const std::string &ext);
+	void parseMaps(std::vector<CFileInfo> &files, int start = 0, int threads = 1);
+	void parseGames(std::vector<CFileInfo> &files, bool multi);
+	void parseCampaigns( std::vector<CFileInfo> & files );
+	void getFiles(std::vector<CFileInfo> & out, const std::string & prefix, EResType::EResType type);
 	CMenuScreen::EState tabType;
 public:
 	int positions; //how many entries (games/maps) can be shown

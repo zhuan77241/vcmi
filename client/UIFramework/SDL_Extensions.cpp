@@ -1298,7 +1298,7 @@ void CSDL_Ext::fillRect( SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color )
 	SDL_FillRect(dst, &newRect, color);
 }
 
-SDL_Surface * CSDL_Ext::convertFromPCX(TMemoryStreamPtr data)
+SDL_Surface * CSDL_Ext::convertPCXToSDL(TMemoryStreamPtr data)
 {
 	enum EPCXFormat
 	{
@@ -1374,6 +1374,7 @@ SDL_Surface * CSDL_Ext::convertFromPCX(TMemoryStreamPtr data)
 
 	}
 
+	// todo set color key
 	return rslt;
 }
 
@@ -1382,17 +1383,23 @@ SDL_Surface * CSDL_Ext::loadImage(TMemoryStreamPtr data, const std::string & ima
 	SDL_Surface * rslt = NULL;
 	if(imageType == ".PCX")
 	{
-		rslt = convertFromPCX(data);
+		rslt = convertPCXToSDL(data);
+		
+		if(rslt->format->BytesPerPixel == 1)
+		{
+			const SDL_Color & c = rslt->format->palette->colors[0];
+			SDL_SetColorKey(rslt, SDL_SRCCOLORKEY, SDL_MapRGB(rslt->format, c.r, c.g, c.b));
+		}
 	}
 	else
 	{
 		rslt = IMG_LoadTyped_RW(SDL_RWFromMem(reinterpret_cast<void *>(data->getRawData()), 
 			data->getLength()), 0, const_cast<char *>(imageType.c_str()));
-
-		if(!rslt)
-			throw CImageLoadingError();
 	}
 	
+	if (!rslt)
+		throw CImageLoadingError();
+
 	return rslt;
 }
 

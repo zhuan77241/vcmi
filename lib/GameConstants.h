@@ -25,7 +25,7 @@ namespace GameConstants
 		const std::string LIB_DIR = ".";
 		const std::string SERVER_NAME = "VCMI_server.exe";
 		const std::string LIB_EXT = "dll";
-		const std::string PATH_SEPARATOR = "\\";
+		const char PATH_SEPARATOR = '\\';
 	#else
 		#ifndef M_DATA_DIR
 		#error M_DATA_DIR undefined.
@@ -44,7 +44,7 @@ namespace GameConstants
 		#endif
 		const std::string SERVER_NAME = "vcmiserver";
 		const std::string LIB_EXT = "so";
-		const std::string PATH_SEPARATOR = "/";
+		const char PATH_SEPARATOR = '/';
 	#endif
 
 	const int BFIELD_WIDTH = 17;

@@ -31,7 +31,6 @@
 #include "BattleInterface/CBattleInterface.h"
 #include "../lib/CThreadHelper.h"
 #include "../lib/CScriptingModule.h"
-#include "../lib/CFileUtility.h"
 #include "../lib/RegisterTypes.h"
 #include "UIFramework/CGuiHandler.h"
 
@@ -405,9 +404,9 @@ void CClient::newGame( CConnection *con, StartInfo *si )
 	serv->addStdVecItems(const_cast<CGameInfo*>(CGI)->state);
 	hotSeat = (humanPlayers > 1);
 
-// 	std::vector<FileInfo> scriptModules;
+// 	std::vector<CFileInfo> scriptModules;
 // 	CFileUtility::getFilesWithExt(scriptModules, LIB_DIR "/Scripting", "." LIB_EXT);
-// 	BOOST_FOREACH(FileInfo &m, scriptModules)
+// 	BOOST_FOREACH(CFileInfo &m, scriptModules)
 // 	{
 // 		CScriptingModule * nm = CDynLibHandler::getNewScriptingModule(m.name);
 // 		privilagedGameEventReceivers.push_back(nm);

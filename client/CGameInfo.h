@@ -29,7 +29,8 @@ class CConsoleHandler;
 class CCursorHandler;
 class CGameState;
 class IMainVideoPlayer;
-
+class CResourceHandler;
+class CFileSystemHandler;
 
 //a class for non-mechanical client GUI classes
 class CClientState
@@ -40,6 +41,7 @@ public:
 	CConsoleHandler * consoleh;
 	CCursorHandler * curh;
 	IMainVideoPlayer * videoh;
+	CResourceHandler * resh;
 };
 extern CClientState * CCS;
 
@@ -61,6 +63,7 @@ public:
 	CMapHandler * mh;
 	ConstTransitivePtr<CBuildingHandler> buildh;
 	CTownHandler * townh;
+	CFileSystemHandler * filesystemh;
 	//CTownHandler * townh;
 
 	void setFromLib();
