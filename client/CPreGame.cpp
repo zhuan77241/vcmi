@@ -731,7 +731,7 @@ void CSelectionScreen::startCampaign()
 {
 	if (SEL->current)
 	{
-		CCampaign * ourCampaign = CCampaignHandler::getCampaign(SEL->current->filename, SEL->current->lodCmpgn);
+		CCampaign * ourCampaign = CCampaignHandler::getCampaign(SEL->current->filename, false);
 		CCampaignState * campState = new CCampaignState();
 		campState->camp = ourCampaign;
 		GH.pushInt( new CBonusSelection(campState) );

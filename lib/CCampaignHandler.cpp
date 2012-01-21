@@ -551,7 +551,7 @@ void CCampaignState::initNewCampaign( const StartInfo &si )
 	currentMap = si.whichMapInCampaign;
 
 	//check if campaign is in lod or not
-	bool inLod = campaignName.find('/') == std::string::npos;
+	bool inLod = campaignName.find(GameConstants::PATH_SEPARATOR) == std::string::npos;
 
 	camp = CCampaignHandler::getCampaign(campaignName, inLod); //TODO lod???
 	for (ui8 i = 0; i < camp->mapPieces.size(); i++)
