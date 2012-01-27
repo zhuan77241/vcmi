@@ -13,13 +13,13 @@
  */
 
 struct SDL_Surface;
-class SDLImageLoader;
-class CompImageLoader;
+class SDLImageLoaderD;
+class CompImageLoaderD;
 class JsonNode;
 
 /// Class for def loading, methods are based on CDefHandler
 /// After loading will store general info (palette and frame offsets) and pointer to file itself
-class CDefFile
+class CDefFileD
 {
 private:
 
@@ -41,8 +41,8 @@ private:
 	SDL_Color * palette;
 
 public:
-	CDefFile(std::string Name);
-	~CDefFile();
+	CDefFileD(std::string Name);
+	~CDefFileD();
 
 	//load frame as SDL_Surface
 	template<class ImageLoader>
@@ -89,7 +89,7 @@ public:
 
 public:
 	//Load image from def file
-	SDLImageD(CDefFile *data, size_t frame, size_t group=0, bool compressed=false);
+	SDLImageD(CDefFileD *data, size_t frame, size_t group=0, bool compressed=false);
 	//Load from bitmap file
 	SDLImageD(std::string filename, bool compressed=false);
 	//Create using existing surface, extraRef will increase refcount on SDL_Surface
@@ -101,7 +101,7 @@ public:
 	int width() const;
 	int height() const;
 
-	friend class SDLImageLoader;
+	friend class SDLImageLoaderD;
 };
 
 /*
@@ -116,7 +116,7 @@ public:
  *  2nd byte = size of segment
  *  raw data (if any)
  */
-class CompImage : public IImageD
+class CompImageD : public IImageD
 {
 	//x,y - margins, w,h - sprite size
 	Rect sprite;
@@ -137,17 +137,17 @@ class CompImage : public IImageD
 
 public:
 	//Load image from def file
-	CompImage(const CDefFile *data, size_t frame, size_t group=0);
+	CompImageD(const CDefFileD *data, size_t frame, size_t group=0);
 	//TODO: load image from SDL_Surface
-	CompImage(SDL_Surface * surf);
-	~CompImage();
+	CompImageD(SDL_Surface * surf);
+	~CompImageD();
 
 	void draw(SDL_Surface *where, int posX=0, int posY=0, Rect *src=NULL, ui8 alpha=255) const;
 	void playerColored(int player);
 	int width() const;
 	int height() const;
 
-	friend class CompImageLoader;
+	friend class CompImageLoaderD;
 };
 
 
@@ -168,16 +168,16 @@ private:
 	const bool compressed;
 
 	//loader, will be called by load(), require opened def file for loading from it. Returns true if image is loaded
-	bool loadFrame(CDefFile * file, size_t frame, size_t group);
+	bool loadFrame(CDefFileD * file, size_t frame, size_t group);
 
 	//unloadFrame, returns true if image has been unloaded ( either deleted or decreased refCount)
 	bool unloadFrame(size_t frame, size_t group);
 
 	//initialize animation from file
-	void init(CDefFile * file);
+	void init(CDefFileD * file);
 
 	//try to open def file
-	CDefFile * getFile() const;
+	CDefFileD * getFile() const;
 
 	//to get rid of copy-pasting error message :]
 	void printError(size_t frame, size_t group, std::string type) const;

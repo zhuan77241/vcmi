@@ -171,6 +171,9 @@ void LibClasses::initFileSystem()
 	// Load DATA
 	filesystemh->addHandler(new CLodResourceLoader(dataPath + "H3bitmap.lod", "DATA/"));
 	
+	// Load SPRITES
+	filesystemh->addHandler(new CLodResourceLoader(dataPath + "H3sprite.lod", "SPRITES/"));
+
 	// Load MAPS/CAMPAIGNS
 	filesystemh->addHandler(new CFileResourceLoader(gc::DATA_DIR + gc::PATH_SEPARATOR + 
 		"Maps", "MAPS/"));

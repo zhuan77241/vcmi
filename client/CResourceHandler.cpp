@@ -5,7 +5,7 @@
 #include "../lib/CFileSystemHandler.h"
 #include "UIFramework/ImageClasses.h"
 
-TImagePtr CResourceHandler::getImage(ResourceIdentifier identifier, bool fromBegin /*= false*/)
+TImagePtr CResourceHandler::getImage(ResourceIdentifier identifier, size_t frame, size_t group, bool fromBegin /*= false*/)
 {
 	TResourcesMap resources = CGI->filesystemh->getResourcesMap();
 	TImagePtr rslt;
@@ -22,26 +22,27 @@ TImagePtr CResourceHandler::getImage(ResourceIdentifier identifier, bool fromBeg
 	// and get the latest inserted resource with fromBegin=false
 	std::list<ResourceLocator> locators = resources.at(identifier);
 	ResourceLocator loc;
-	if (!fromBegin)
+	if(!fromBegin)
 		loc = locators.back();
 	else 
 		loc = locators.front();
 
-	// get file info of the locator
-	CFileInfo locInfo(loc.resourceName);
-
 	// check if resource is already loaded
-	if(images.find(loc) == images.end())
+	GraphicsLocator gloc(loc.loader, loc.resourceName);
+	gloc.frame = frame;
+	gloc.group = group;
+
+	if(images.find(gloc) == images.end())
 	{
 		// load it
-		return loadImage(identifier, locInfo.getExtension(), fromBegin);
+		return loadImage(gloc);
 	}
 
-	weak_ptr<IImage> ptr = images.at(loc);
-	if (ptr.expired())
+	weak_ptr<IImage> ptr = images.at(gloc);
+	if(ptr.expired())
 	{
 		// load it
-		return loadImage(identifier, locInfo.getExtension(), fromBegin);
+		return loadImage(gloc);
 	}
 
 	// already loaded, just return resource
@@ -49,9 +50,32 @@ TImagePtr CResourceHandler::getImage(ResourceIdentifier identifier, bool fromBeg
 	return rslt;
 }
 
-TImagePtr CResourceHandler::loadImage(ResourceIdentifier identifier, const std::string & fileExt, bool fromBegin /*= false*/)
+TImagePtr CResourceHandler::getImage(ResourceIdentifier identifier, bool fromBegin /*= false*/)
 {
-	TMemoryStreamPtr data = CGI->filesystemh->getResource(identifier, fromBegin);
-	shared_ptr<IImage> rslt(IImage::createInstance(data, fileExt));
-	return rslt;
+	return getImage(identifier, 0, 0, fromBegin);
+}
+
+TImagePtr CResourceHandler::loadImage(const GraphicsLocator & gloc)
+{
+	ResourceLocator resLoc(gloc.loader, gloc.resourceName);
+	TMemoryStreamPtr data = CGI->filesystemh->getResource(resLoc);
+	
+	// get file info of the locator
+	CFileInfo locInfo(gloc.resourceName);
+
+	TImagePtr img;
+	if(boost::iequals(locInfo.getExtension(), ".DEF"))
+	{
+		CDefFile defFile(data);
+		img = IImage::createSpriteFromDEF(&defFile, gloc.frame, gloc.group);
+	}
+	else
+	{
+		img = IImage::createImageFromFile(data, locInfo.getExtension());
+	}
+
+	weak_ptr<IImage> wPtr(img);
+	images[gloc] = wPtr;
+
+	return img;
 }

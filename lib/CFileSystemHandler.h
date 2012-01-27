@@ -32,13 +32,15 @@ public:
 	void reset();
 	size_t getSeekPos() const;
 	void setSeekPos(size_t pos);
-	
+	void incSeekPos(size_t add);
+
 	ui8 readInt8();
 	ui16 readInt16();
 	ui32 readInt32();
 	
 	// Gets raw ui8 pointer of data. Do not delete that data. Ownership belongs to CMemoryStream.
-	ui8 * getRawData();
+	ui8 * getRawData() const;
+	ui8 * getRawData(size_t seekPos) const;
 	std::string getDataAsString() const { std::string rslt(data, data + length); return rslt; }
 	void writeToFile(const std::string & destFile) const;
 };

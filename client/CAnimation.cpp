@@ -27,7 +27,7 @@ typedef std::map <size_t, std::vector <JsonNode> > source_map;
 typedef std::map<size_t, IImageD* > image_map;
 typedef std::map<size_t, image_map > group_map;
 
-class SDLImageLoader
+class SDLImageLoaderD
 {
 	SDLImageD * image;
 	ui8 * lineStart;
@@ -41,13 +41,13 @@ public:
 	//init image with these sizes and palette
 	inline void init(Point SpriteSize, Point Margins, Point FullSize, SDL_Color *pal);
 
-	SDLImageLoader(SDLImageD * Img);
-	~SDLImageLoader();
+	SDLImageLoaderD(SDLImageD * Img);
+	~SDLImageLoaderD();
 };
 
-class CompImageLoader
+class CompImageLoaderD
 {
-	CompImage * image;
+	CompImageD * image;
 	ui8 *position;
 	ui8 *entry;
 	ui32 currentLine;
@@ -65,15 +65,15 @@ public:
 	//init image with these sizes and palette
 	inline void init(Point SpriteSize, Point Margins, Point FullSize, SDL_Color *pal);
 
-	CompImageLoader(CompImage * Img);
-	~CompImageLoader();
+	CompImageLoaderD(CompImageD * Img);
+	~CompImageLoaderD();
 };
 
 /*************************************************************************
  *  DefFile, class used for def loading                                  *
  *************************************************************************/
 
-CDefFile::CDefFile(std::string Name):
+CDefFileD::CDefFileD(std::string Name):
 	data(NULL),
 	palette(NULL)
 {
@@ -135,7 +135,7 @@ CDefFile::CDefFile(std::string Name):
 }
 
 template<class ImageLoader>
-void CDefFile::loadFrame(size_t frame, size_t group, ImageLoader &loader) const
+void CDefFileD::loadFrame(size_t frame, size_t group, ImageLoader &loader) const
 {
 	std::map<size_t, std::vector <size_t> >::const_iterator it;
 	it = offset.find(group);
@@ -271,13 +271,13 @@ void CDefFile::loadFrame(size_t frame, size_t group, ImageLoader &loader) const
 	}
 };
 
-CDefFile::~CDefFile()
+CDefFileD::~CDefFileD()
 {
 	delete[] data;
 	delete[] palette;
 }
 
-const std::map<size_t, size_t > CDefFile::getEntries() const
+const std::map<size_t, size_t > CDefFileD::getEntries() const
 {
 	std::map<size_t, size_t > ret;
 
@@ -290,14 +290,14 @@ const std::map<size_t, size_t > CDefFile::getEntries() const
  *  Classes for image loaders - helpers for loading from def files       *
  *************************************************************************/
 
-SDLImageLoader::SDLImageLoader(SDLImageD * Img):
+SDLImageLoaderD::SDLImageLoaderD(SDLImageD * Img):
 	image(Img),
 	lineStart(NULL),
 	position(NULL)
 {
 }
 
-void SDLImageLoader::init(Point SpriteSize, Point Margins, Point FullSize, SDL_Color *pal)
+void SDLImageLoaderD::init(Point SpriteSize, Point Margins, Point FullSize, SDL_Color *pal)
 {
 	//Init image
 	image->surf = SDL_CreateRGBSurface(SDL_SWSURFACE, SpriteSize.x, SpriteSize.y, 8, 0, 0, 0, 0);
@@ -311,7 +311,7 @@ void SDLImageLoader::init(Point SpriteSize, Point Margins, Point FullSize, SDL_C
 	lineStart = position = (ui8*)image->surf->pixels;
 }
 
-inline void SDLImageLoader::Load(size_t size, const ui8 * data)
+inline void SDLImageLoaderD::Load(size_t size, const ui8 * data)
 {
 	if (size)
 	{
@@ -320,7 +320,7 @@ inline void SDLImageLoader::Load(size_t size, const ui8 * data)
 	}
 }
 
-inline void SDLImageLoader::Load(size_t size, ui8 color)
+inline void SDLImageLoaderD::Load(size_t size, ui8 color)
 {
 	if (size)
 	{
@@ -329,13 +329,13 @@ inline void SDLImageLoader::Load(size_t size, ui8 color)
 	}
 }
 
-inline void SDLImageLoader::EndLine()
+inline void SDLImageLoaderD::EndLine()
 {
 	lineStart += image->surf->pitch;
 	position = lineStart;
 }
 
-SDLImageLoader::~SDLImageLoader()
+SDLImageLoaderD::~SDLImageLoaderD()
 {
 	SDL_UnlockSurface(image->surf);
 	SDL_SetColorKey(image->surf, SDL_SRCCOLORKEY, 0);
@@ -344,7 +344,7 @@ SDLImageLoader::~SDLImageLoader()
 
 ////////////////////////////////////////////////////////////////////////////////
  
-CompImageLoader::CompImageLoader(CompImage * Img):
+CompImageLoaderD::CompImageLoaderD(CompImageD * Img):
 	image(Img),
 	position(NULL),
 	entry(NULL),
@@ -353,7 +353,7 @@ CompImageLoader::CompImageLoader(CompImage * Img):
 	
 }
 
-void CompImageLoader::init(Point SpriteSize, Point Margins, Point FullSize, SDL_Color *pal)
+void CompImageLoaderD::init(Point SpriteSize, Point Margins, Point FullSize, SDL_Color *pal)
 {
 	image->sprite = Rect(Margins, SpriteSize);
 	image->fullSize = FullSize;
@@ -369,7 +369,7 @@ void CompImageLoader::init(Point SpriteSize, Point Margins, Point FullSize, SDL_
 	}
 }
 
-inline void CompImageLoader::NewEntry(ui8 color, size_t size)
+inline void CompImageLoaderD::NewEntry(ui8 color, size_t size)
 {
 	assert(color != 0xff);
 	assert(size && size<256);
@@ -379,7 +379,7 @@ inline void CompImageLoader::NewEntry(ui8 color, size_t size)
 	position +=2;
 }
 
-inline void CompImageLoader::NewEntry(const ui8 * &data, size_t size)
+inline void CompImageLoaderD::NewEntry(const ui8 * &data, size_t size)
 {
 	assert(size && size<256);
 	entry = position;
@@ -391,7 +391,7 @@ inline void CompImageLoader::NewEntry(const ui8 * &data, size_t size)
 	data+=size;
 }
 
-inline ui8 CompImageLoader::typeOf(ui8 color)
+inline ui8 CompImageLoaderD::typeOf(ui8 color)
 {
 	if (color == 0)
 		return 0;
@@ -400,7 +400,7 @@ inline ui8 CompImageLoader::typeOf(ui8 color)
 	return 2;
 }
 
-inline void CompImageLoader::Load(size_t size, const ui8 * data)
+inline void CompImageLoaderD::Load(size_t size, const ui8 * data)
 {
 	while (size)
 	{
@@ -469,7 +469,7 @@ inline void CompImageLoader::Load(size_t size, const ui8 * data)
 	}
 }
 
-inline void CompImageLoader::Load(size_t size, ui8 color)
+inline void CompImageLoaderD::Load(size_t size, ui8 color)
 {
 	if (!size)
 		return;
@@ -499,7 +499,7 @@ inline void CompImageLoader::Load(size_t size, ui8 color)
 		NewEntry(color, size);
 }
 
-void CompImageLoader::EndLine()
+void CompImageLoaderD::EndLine()
 {
 	currentLine++;
 	image->line[currentLine] = position - image->surf;
@@ -507,7 +507,7 @@ void CompImageLoader::EndLine()
 
 }
 
-CompImageLoader::~CompImageLoader()
+CompImageLoaderD::~CompImageLoaderD()
 {
 	if (!image->surf)
 		return;
@@ -538,10 +538,10 @@ void IImageD::increaseRef()
 	refCount++;
 }
 
-SDLImageD::SDLImageD(CDefFile *data, size_t frame, size_t group, bool compressed):
+SDLImageD::SDLImageD(CDefFileD *data, size_t frame, size_t group, bool compressed):
 	surf(NULL)
 {
-	SDLImageLoader loader(this);
+	SDLImageLoaderD loader(this);
 	data->loadFrame(frame, group, loader);
 }
 
@@ -624,23 +624,23 @@ SDLImageD::~SDLImageD()
 	SDL_FreeSurface(surf);
 }
 
-CompImage::CompImage(const CDefFile *data, size_t frame, size_t group):
+CompImageD::CompImageD(const CDefFileD *data, size_t frame, size_t group):
 	surf(NULL),
 	line(NULL),
 	palette(NULL)
 	
 {
-	CompImageLoader loader(this);
+	CompImageLoaderD loader(this);
 	data->loadFrame(frame, group, loader);
 }
 
-CompImage::CompImage(SDL_Surface * surf)
+CompImageD::CompImageD(SDL_Surface * surf)
 {
 	//TODO
 	assert(0);
 }
 
-void CompImage::draw(SDL_Surface *where, int posX, int posY, Rect *src, ui8 alpha) const
+void CompImageD::draw(SDL_Surface *where, int posX, int posY, Rect *src, ui8 alpha) const
 {
 	int rotation = 0; //TODO
 	//rotation & 2 = horizontal rotation
@@ -714,7 +714,7 @@ void CompImage::draw(SDL_Surface *where, int posX, int posY, Rect *src, ui8 alph
 #define CASEBPP(x,y) case x: BlitBlock<x,y>(type, size, data, dest, alpha); break
 
 //FIXME: better way to get blitter
-void CompImage::BlitBlockWithBpp(ui8 bpp, ui8 type, ui8 size, ui8 *&data, ui8 *&dest, ui8 alpha, bool rotated) const
+void CompImageD::BlitBlockWithBpp(ui8 bpp, ui8 type, ui8 size, ui8 *&data, ui8 *&dest, ui8 alpha, bool rotated) const
 {
 	assert(bpp>1 && bpp<5);
 	
@@ -737,7 +737,7 @@ void CompImage::BlitBlockWithBpp(ui8 bpp, ui8 type, ui8 size, ui8 *&data, ui8 *&
 
 //Blit one block from RLE-d surface
 template<int bpp, int dir>
-void CompImage::BlitBlock(ui8 type, ui8 size, ui8 *&data, ui8 *&dest, ui8 alpha) const
+void CompImageD::BlitBlock(ui8 type, ui8 size, ui8 *&data, ui8 *&dest, ui8 alpha) const
 {
 	//Raw data
 	if (type == 0xff)
@@ -805,7 +805,7 @@ void CompImage::BlitBlock(ui8 type, ui8 size, ui8 *&data, ui8 *&dest, ui8 alpha)
 	}
 }
 
-void CompImage::playerColored(int player)
+void CompImageD::playerColored(int player)
 {
 	SDL_Color *pal = NULL;
 	if(player < GameConstants::PLAYER_LIMIT && player >= 0)
@@ -828,17 +828,17 @@ void CompImage::playerColored(int player)
 	}
 }
 
-int CompImage::width() const
+int CompImageD::width() const
 {
 	return fullSize.x;
 }
 
-int CompImage::height() const
+int CompImageD::height() const
 {
 	return fullSize.y;
 }
 
-CompImage::~CompImage()
+CompImageD::~CompImageD()
 {
 	free(surf);
 	delete [] line;
@@ -870,7 +870,7 @@ IImageD * CAnimation::getFromExtraDef(std::string filename)
 	return ret;
 }
 
-bool CAnimation::loadFrame(CDefFile * file, size_t frame, size_t group)
+bool CAnimation::loadFrame(CDefFileD * file, size_t frame, size_t group)
 {
 	if (size(group) <= frame)
 	{
@@ -889,7 +889,7 @@ bool CAnimation::loadFrame(CDefFile * file, size_t frame, size_t group)
 	if (source[group][frame].getType() == JsonNode::DATA_NULL)
 	{
 		if (compressed)
-			images[group][frame] = new CompImage(file, frame, group);
+			images[group][frame] = new CompImageD(file, frame, group);
 		else
 			images[group][frame] = new SDLImageD(file, frame, group);
 	}
@@ -925,7 +925,7 @@ bool CAnimation::unloadFrame(size_t frame, size_t group)
 	return false;
 }
 
-void CAnimation::init(CDefFile * file)
+void CAnimation::init(CDefFileD * file)
 {
 	if (file)
 	{
@@ -974,10 +974,10 @@ void CAnimation::init(CDefFile * file)
 	}
 }
 
-CDefFile * CAnimation::getFile() const
+CDefFileD * CAnimation::getFile() const
 {
 	if (spriteh->haveFile(name, FILE_ANIMATION))
-		return new CDefFile(name);
+		return new CDefFileD(name);
 	return NULL;
 }
 
@@ -995,7 +995,7 @@ CAnimation::CAnimation(std::string Name, bool Compressed):
 	if ( dotPos!=-1 )
 		name.erase(dotPos);
 	std::transform(name.begin(), name.end(), name.begin(), toupper);
-	CDefFile * file = getFile();
+	CDefFileD * file = getFile();
 	init(file);
 	delete file;
 	loadedAnims.insert(this);
@@ -1045,7 +1045,7 @@ IImageD * CAnimation::getImage(size_t frame, size_t group, bool verbose) const
 
 void CAnimation::load()
 {
-	CDefFile * file = getFile();
+	CDefFileD * file = getFile();
 
 	for (source_map::iterator group = source.begin(); group != source.end(); ++group )
 		for (size_t image=0; image < group->second.size(); image++)
@@ -1064,7 +1064,7 @@ void CAnimation::unload()
 
 void CAnimation::loadGroup(size_t group)
 {
-	CDefFile * file = getFile();
+	CDefFileD * file = getFile();
 
 	if (vstd::contains(source, group))
 		for (size_t image=0; image < source[group].size(); image++)
@@ -1082,7 +1082,7 @@ void CAnimation::unloadGroup(size_t group)
 
 void CAnimation::load(size_t frame, size_t group)
 {
-	CDefFile * file = getFile();
+	CDefFileD * file = getFile();
 	loadFrame(file, frame, group);
 	delete file;
 }

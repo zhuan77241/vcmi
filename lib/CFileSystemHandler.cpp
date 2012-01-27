@@ -64,9 +64,14 @@ CMemoryStream & CMemoryStream::operator=(const CMemoryStream & cpy)
 	return *this;
 }
 
-ui8 * CMemoryStream::getRawData()
+ui8 * CMemoryStream::getRawData() const
 {
 	return data;
+}
+
+ui8 * CMemoryStream::getRawData(size_t seekPos) const
+{
+	return data + seekPos;
 }
 
 void CMemoryStream::writeToFile(const std::string & destFile) const
@@ -100,6 +105,11 @@ size_t CMemoryStream::getLength() const
 bool CMemoryStream::moreBytesToRead() const 
 { 
 	return seekPos < length; 
+}
+
+void CMemoryStream::incSeekPos(size_t add)
+{
+	seekPos += add;
 }
 
 std::string CFileInfo::getName() const
@@ -237,7 +247,7 @@ void CLodResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
 		// Add resource locator to global map
 		ResourceIdentifier mapIdent(prefix + entry.name, entry.type);
 		ResourceLocator locator(this, lodEntries[i].filename);
-		
+
 		map[mapIdent].push_back(locator);
 	}
 	

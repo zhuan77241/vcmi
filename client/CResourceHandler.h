@@ -15,11 +15,15 @@
 
 class CResourceHandler
 {
-	boost::unordered_map<ResourceLocator, weak_ptr<IImage> > images;
+	boost::unordered_map<const GraphicsLocator, weak_ptr<IImage> > images;
 
-	TImagePtr loadImage(ResourceIdentifier identifier, const std::string & fileExt, bool fromBegin = false);
+	TImagePtr loadImage(const GraphicsLocator & gloc);
 
 public:
 
-	TImagePtr getImage(ResourceIdentifier ident, bool fromBegin = false);
+	// Loads an image.
+	TImagePtr getImage(ResourceIdentifier identifier, bool fromBegin = false);
+	
+	// Loads a frame/sprite.
+	TImagePtr getImage(ResourceIdentifier identifier, size_t frame, size_t group, bool fromBegin = false);
 };
