@@ -452,11 +452,9 @@ bool CGuiHandler::isArrowKey( SDLKey key )
 }
 
 
-CFramerateManager::CFramerateManager(int rate)
+CFramerateManager::CFramerateManager(ui32 Rate) : fps(0), rate(Rate)
 {
-	this->rate = rate;
-	this->rateticks = (1000.0 / rate);
-	this->fps = 0;
+	rateticks = ceil(1000.0 / rate);
 }
 
 void CFramerateManager::init()
@@ -467,14 +465,14 @@ void CFramerateManager::init()
 void CFramerateManager::framerateDelay()
 {
 	ui32 currentTicks = SDL_GetTicks();
-	this->timeElapsed = currentTicks - this->lastticks;
+	timeElapsed = currentTicks - lastticks;
+
+	lastticks = SDL_GetTicks();
+	fps = ceil(1000.0 / timeElapsed);
 
 	// FPS is higher than it should be, then wait some time
-	if (this->timeElapsed < this->rateticks)
+	if (timeElapsed < rateticks)
 	{
-		SDL_Delay(ceil(this->rateticks) - this->timeElapsed);
+		SDL_Delay(rateticks - timeElapsed);
 	}
-
-	this->fps = ceil(1000.0 / this->timeElapsed);
-	this->lastticks = SDL_GetTicks();
 }

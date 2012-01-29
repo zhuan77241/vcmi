@@ -8,7 +8,7 @@ struct SDL_Surface;
 struct Rect;
 class CAnimImage;
 class CLabel;
-class CAnimation;
+class CAnimationD;
 class CDefHandler;
 
 /*
@@ -129,7 +129,7 @@ public:
 	void init(const CFunctionList<void()> &Callback, const std::map<int,std::string> &Name, const std::string &HelpBox, bool playerColoredButton, const std::string &defName, std::vector<std::string> * add, int x, int y, int key );
 
 	void setIndex(size_t index, bool playerColoredButton=false);
-	void setImage(CAnimation* anim, bool playerColoredButton=false);
+	void setImage(CAnimationD * anim, bool playerColoredButton=false);
 	void setPlayerColor(int player);
 	void showAll(SDL_Surface * to);
 };

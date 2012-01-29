@@ -3103,7 +3103,7 @@ void CBonusSelection::updateBonusSelection()
 			if (picNumber != -1)
 				picName += ":" + boost::lexical_cast<std::string>(picNumber);
 
-			CAnimation * anim = new CAnimation();
+			CAnimationD * anim = new CAnimationD();
 			anim->setCustom(picName, 0);
 			bonusButton->setImage(anim);
 			bonusButton->borderColor = Colors::Maize; // yellow border

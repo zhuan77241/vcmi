@@ -846,15 +846,15 @@ CompImageD::~CompImageD()
 }
 
 /*************************************************************************
- *  CAnimation for animations handling, can load part of file if needed  *
+ *  CAnimationD for animations handling, can load part of file if needed  *
  *************************************************************************/
 
-IImageD * CAnimation::getFromExtraDef(std::string filename)
+IImageD * CAnimationD::getFromExtraDef(std::string filename)
 {
 	size_t pos = filename.find(':');
 	if (pos == -1)
 		return NULL;
-	CAnimation anim(filename.substr(0, pos));
+	CAnimationD anim(filename.substr(0, pos));
 	pos++;
 	size_t frame = atoi(filename.c_str()+pos);
 	size_t group = 0;
@@ -870,7 +870,7 @@ IImageD * CAnimation::getFromExtraDef(std::string filename)
 	return ret;
 }
 
-bool CAnimation::loadFrame(CDefFileD * file, size_t frame, size_t group)
+bool CAnimationD::loadFrame(CDefFileD * file, size_t frame, size_t group)
 {
 	if (size(group) <= frame)
 	{
@@ -907,7 +907,7 @@ bool CAnimation::loadFrame(CDefFileD * file, size_t frame, size_t group)
 	return false;
 }
 
-bool CAnimation::unloadFrame(size_t frame, size_t group)
+bool CAnimationD::unloadFrame(size_t frame, size_t group)
 {
 	IImageD *image = getImage(frame, group, false);
 	if (image)
@@ -925,7 +925,7 @@ bool CAnimation::unloadFrame(size_t frame, size_t group)
 	return false;
 }
 
-void CAnimation::init(CDefFileD * file)
+void CAnimationD::init(CDefFileD * file)
 {
 	if (file)
 	{
@@ -974,20 +974,20 @@ void CAnimation::init(CDefFileD * file)
 	}
 }
 
-CDefFileD * CAnimation::getFile() const
+CDefFileD * CAnimationD::getFile() const
 {
 	if (spriteh->haveFile(name, FILE_ANIMATION))
 		return new CDefFileD(name);
 	return NULL;
 }
 
-void CAnimation::printError(size_t frame, size_t group, std::string type) const
+void CAnimationD::printError(size_t frame, size_t group, std::string type) const
 {
-	tlog0 << type <<" error: Request for frame not present in CAnimation!\n"
+	tlog0 << type <<" error: Request for frame not present in CAnimationD!\n"
 	      <<"\tFile name: "<<name<<" Group: "<<group<<" Frame: "<<frame<<"\n";
 }
 
-CAnimation::CAnimation(std::string Name, bool Compressed):
+CAnimationD::CAnimationD(std::string Name, bool Compressed):
 	name(Name),
 	compressed(Compressed)
 {
@@ -1001,7 +1001,7 @@ CAnimation::CAnimation(std::string Name, bool Compressed):
 	loadedAnims.insert(this);
 }
 
-CAnimation::CAnimation():
+CAnimationD::CAnimationD():
 	name(""),
 	compressed(false)
 {
@@ -1009,7 +1009,7 @@ CAnimation::CAnimation():
 	loadedAnims.insert(this);
 }
 
-CAnimation::~CAnimation()
+CAnimationD::~CAnimationD()
 {
 	if (!images.empty())
 	{
@@ -1021,7 +1021,7 @@ CAnimation::~CAnimation()
 	loadedAnims.erase(this);
 }
 
-void CAnimation::setCustom(std::string filename, size_t frame, size_t group)
+void CAnimationD::setCustom(std::string filename, size_t frame, size_t group)
 {
 	if (source[group].size() <= frame)
 		source[group].resize(frame+1);
@@ -1029,7 +1029,7 @@ void CAnimation::setCustom(std::string filename, size_t frame, size_t group)
 	//FIXME: update image if already loaded
 }
 
-IImageD * CAnimation::getImage(size_t frame, size_t group, bool verbose) const
+IImageD * CAnimationD::getImage(size_t frame, size_t group, bool verbose) const
 {
 	group_map::const_iterator groupIter = images.find(group);
 	if (groupIter != images.end())
@@ -1043,7 +1043,7 @@ IImageD * CAnimation::getImage(size_t frame, size_t group, bool verbose) const
 	return NULL;
 }
 
-void CAnimation::load()
+void CAnimationD::load()
 {
 	CDefFileD * file = getFile();
 
@@ -1054,7 +1054,7 @@ void CAnimation::load()
 	delete file;
 }
 
-void CAnimation::unload()
+void CAnimationD::unload()
 {
 	for (source_map::iterator group = source.begin(); group != source.end(); ++group )
 		for (size_t image=0; image < group->second.size(); image++)
@@ -1062,7 +1062,7 @@ void CAnimation::unload()
 
 }
 
-void CAnimation::loadGroup(size_t group)
+void CAnimationD::loadGroup(size_t group)
 {
 	CDefFileD * file = getFile();
 
@@ -1073,26 +1073,26 @@ void CAnimation::loadGroup(size_t group)
 	delete file;
 }
 
-void CAnimation::unloadGroup(size_t group)
+void CAnimationD::unloadGroup(size_t group)
 {
 	if (vstd::contains(source, group))
 		for (size_t image=0; image < source[group].size(); image++)
 			unloadFrame(image, group);
 }
 
-void CAnimation::load(size_t frame, size_t group)
+void CAnimationD::load(size_t frame, size_t group)
 {
 	CDefFileD * file = getFile();
 	loadFrame(file, frame, group);
 	delete file;
 }
 
-void CAnimation::unload(size_t frame, size_t group)
+void CAnimationD::unload(size_t frame, size_t group)
 {
 	unloadFrame(frame, group);
 }
 
-size_t CAnimation::size(size_t group) const
+size_t CAnimationD::size(size_t group) const
 {
 	source_map::const_iterator iter = source.find(group);
 	if (iter != source.end())
@@ -1100,14 +1100,14 @@ size_t CAnimation::size(size_t group) const
 	return 0;
 }
 
-std::set<CAnimation*> CAnimation::loadedAnims;
+std::set<CAnimationD*> CAnimationD::loadedAnims;
 
-void CAnimation::getAnimInfo()
+void CAnimationD::getAnimInfo()
 {
 	tlog1<<"Animation stats: Loaded "<<loadedAnims.size()<<" total\n";
-	for (std::set<CAnimation*>::iterator it = loadedAnims.begin(); it != loadedAnims.end(); it++)
+	for (std::set<CAnimationD*>::iterator it = loadedAnims.begin(); it != loadedAnims.end(); it++)
 	{
-		CAnimation * anim = *it;
+		CAnimationD * anim = *it;
 		tlog1<<"Name: "<<anim->name<<" Groups: "<<anim->images.size();
 		if (!anim->images.empty())
 			tlog1<<", "<<anim->images.begin()->second.size()<<" image loaded in group "<< anim->images.begin()->first;
@@ -1123,11 +1123,11 @@ CAnimImage::CAnimImage(std::string name, size_t Frame, size_t Group, int x, int 
 {
 	pos.x += x;
 	pos.y += y;
-	anim = new CAnimation(name);
+	anim = new CAnimationD(name);
 	init();
 }
 
-CAnimImage::CAnimImage(CAnimation *Anim, size_t Frame, size_t Group, int x, int y, ui8 Flags):
+CAnimImage::CAnimImage(CAnimationD *Anim, size_t Frame, size_t Group, int x, int y, ui8 Flags):
 	anim(Anim),
 	frame(Frame),
 	group(Group),

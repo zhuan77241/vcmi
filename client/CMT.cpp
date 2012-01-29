@@ -529,7 +529,7 @@ void processCommand(const std::string &message)
 		}
 		else if (what == "anim" )
 		{
-			CAnimation::getAnimInfo();
+			CAnimationD::getAnimInfo();
 		}
 	}
 	else if (cn == "switchCreWin" )

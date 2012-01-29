@@ -152,7 +152,7 @@ public:
 
 
 /// Class for handling animation
-class CAnimation
+class CAnimationD
 {
 private:
 	//source[group][position] - file with this frame, if string is empty - image located in def file
@@ -188,13 +188,13 @@ private:
 
 public:
 
-	CAnimation(std::string Name, bool Compressed = false);
-	CAnimation();
-	~CAnimation();
+	CAnimationD(std::string Name, bool Compressed = false);
+	CAnimationD();
+	~CAnimationD();
 
 	//static method for debugging - print info about loaded animations in tlog1
 	static void getAnimInfo();
-	static std::set<CAnimation*> loadedAnims;
+	static std::set<CAnimationD*> loadedAnims;
 
 	//add custom surface to the selected position.
 	void setCustom(std::string filename, size_t frame, size_t group=0);
@@ -223,7 +223,7 @@ public:
 class CAnimImage: public CIntObject
 {
 private:
-	CAnimation* anim;
+	CAnimationD* anim;
 	//displayed frame/group
 	size_t frame;
 	size_t group;
@@ -234,7 +234,7 @@ private:
 
 public:
 	CAnimImage(std::string name, size_t Frame, size_t Group=0, int x=0, int y=0, ui8 Flags=0);
-	CAnimImage(CAnimation* anim, size_t Frame, size_t Group=0, int x=0, int y=0, ui8 Flags=0);
+	CAnimImage(CAnimationD* anim, size_t Frame, size_t Group=0, int x=0, int y=0, ui8 Flags=0);
 	~CAnimImage();//d-tor
 
 	//size of animation
@@ -262,7 +262,7 @@ public:
 		PLAYER_COLORED=16, //TODO: all loaded images will be player-colored
 	};
 protected:
-	CAnimation anim;
+	CAnimationD anim;
 
 	size_t group, frame;//current frame
 

@@ -358,10 +358,10 @@ void CAdventureMapButton::setIndex(size_t index, bool playerColoredButton)
 	if (index == currentImage || index>=imageNames.size())
 		return;
 	currentImage = index;
-	setImage(new CAnimation(imageNames[index]), playerColoredButton);
+	setImage(new CAnimationD(imageNames[index]), playerColoredButton);
 }
 
-void CAdventureMapButton::setImage(CAnimation* anim, bool playerColoredButton)
+void CAdventureMapButton::setImage(CAnimationD* anim, bool playerColoredButton)
 {
 	OBJ_CONSTRUCTION_CAPTURING_ALL;
 
@@ -726,23 +726,23 @@ CSlider::CSlider(int x, int y, int totalw, boost::function<void(int)> Moved, int
 	if(style == 0)
 	{
 		std::string name = horizontal?"IGPCRDIV.DEF":"OVBUTN2.DEF";
-		CAnimation *animLeft = new CAnimation(name);
+		CAnimationD *animLeft = new CAnimationD(name);
 		left->setImage(animLeft);
 		left->setOffset(0);
 
-		CAnimation *animRight = new CAnimation(name);
+		CAnimationD *animRight = new CAnimationD(name);
 		right->setImage(animRight);
 		right->setOffset(2);
 
-		CAnimation *animSlider = new CAnimation(name);
+		CAnimationD *animSlider = new CAnimationD(name);
 		slider->setImage(animSlider);
 		slider->setOffset(4);
 	}
 	else
 	{
-		left->setImage(new CAnimation(horizontal ? "SCNRBLF.DEF" : "SCNRBUP.DEF"));
-		right->setImage(new CAnimation(horizontal ? "SCNRBRT.DEF" : "SCNRBDN.DEF"));
-		slider->setImage(new CAnimation("SCNRBSL.DEF"));
+		left->setImage(new CAnimationD(horizontal ? "SCNRBLF.DEF" : "SCNRBUP.DEF"));
+		right->setImage(new CAnimationD(horizontal ? "SCNRBRT.DEF" : "SCNRBDN.DEF"));
+		slider->setImage(new CAnimationD("SCNRBSL.DEF"));
 	}
 	slider->actOnDown = true;
 	slider->soundDisabled = true;

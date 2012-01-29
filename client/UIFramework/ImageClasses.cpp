@@ -15,7 +15,7 @@ TImagePtr IImage::createImageFromFile(TMemoryStreamPtr data, const std::string &
 	return img;
 }
 
-TImagePtr IImage::createSpriteFromDEF(CDefFile * defFile, size_t frame, size_t group)
+TImagePtr IImage::createSpriteFromDEF(const CDefFile * defFile, size_t frame, size_t group)
 {
 	// always use CompImage when loading from DEF file
 	// we keep the possibility to load via SDL image
@@ -256,7 +256,7 @@ CDefFile::~CDefFile()
 	delete[] palette;
 }
 
-const std::map<size_t, size_t > CDefFile::getEntries() const
+std::map<size_t, size_t> CDefFile::getEntries() const
 {
 	std::map<size_t, size_t> ret;
 
@@ -315,25 +315,34 @@ SDLImageLoader::~SDLImageLoader()
 	//TODO: RLE if compressed and bpp>1
 }
 
-SDLImage::SDLImage() : surf(NULL)
+SDLImage::SDLImage() : surf(NULL), freeSurf(true)
 {
 
 }
 
 SDLImage::~SDLImage()
 {
-	SDL_FreeSurface(surf);
+	if (freeSurf)
+		SDL_FreeSurface(surf);
 }
 
 void SDLImage::load(TMemoryStreamPtr data, const std::string & imageType)
 {
 	surf = CSDL_Ext::loadImage(data, imageType);
+	freeSurf = true;
 }
 
-void SDLImage::load(CDefFile * defFile, size_t frame, size_t group)
+void SDLImage::load(const CDefFile * defFile, size_t frame, size_t group)
 {
 	SDLImageLoader loader(this);
 	defFile->loadFrame(frame, group, loader);
+	freeSurf = true;
+}
+
+void SDLImage::load(SDL_Surface * surf, bool freeSurf /*= true*/)
+{
+	this->surf = surf;
+	this->freeSurf = freeSurf;
 }
 
 void SDLImage::draw(TImagePtr where, int posX, int posY, Rect * src,  ui8 alpha) const
@@ -576,7 +585,7 @@ CompImage::~CompImage()
 	delete [] palette;
 }
 
-void CompImage::load(CDefFile * defFile, size_t frame, size_t group)
+void CompImage::load(const CDefFile * defFile, size_t frame, size_t group)
 {
 	CompImageLoader loader(this);
 	defFile->loadFrame(frame, group, loader);

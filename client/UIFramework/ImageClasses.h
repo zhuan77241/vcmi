@@ -25,7 +25,7 @@ public:
 	virtual void load(TMemoryStreamPtr data, const std::string & imageType) =0;
 	
 	// Loads an sprite image from DEF file.
-	virtual void load(CDefFile * defFile, size_t frame, size_t group) =0;
+	virtual void load(const CDefFile * defFile, size_t frame, size_t group) =0;
 
 	// draws image on surface "where" at position
 	virtual void draw(TImagePtr where, int posX = 0, int posY = 0, Rect * src = NULL, ui8 alpha = 255) const =0;
@@ -35,7 +35,7 @@ public:
 	virtual ~IImage() {};
 
 	static TImagePtr createImageFromFile(TMemoryStreamPtr data, const std::string & imageType);
-	static TImagePtr createSpriteFromDEF(CDefFile * defFile, size_t frame, size_t group);
+	static TImagePtr createSpriteFromDEF(const CDefFile * defFile, size_t frame, size_t group);
 };
 
 /*
@@ -71,7 +71,7 @@ public:
 	template<class ImageLoader>
 	void loadFrame(size_t frame, size_t group, ImageLoader &loader) const;
 
-	const std::map<size_t, size_t> getEntries() const;
+	std::map<size_t, size_t> getEntries() const;
 };
 
 class SDLImageLoader
@@ -102,7 +102,8 @@ class SDLImage : public IImage, public IImageTasks
 {
 	//Surface without empty borders
 	SDL_Surface * surf;
-	
+	bool freeSurf;
+
 	//size of left and top borders
 	Point margins;
 	
@@ -115,7 +116,8 @@ public:
 	~SDLImage();
 
 	void load(TMemoryStreamPtr data, const std::string & imageType);
-	void load(CDefFile * defFile, size_t frame, size_t group);
+	void load(const CDefFile * defFile, size_t frame, size_t group);
+	void load(SDL_Surface * surf, bool freeSurf = true);
 	void draw(TImagePtr where, int posX = 0, int posY = 0, Rect * src = NULL,  ui8 alpha = 255) const;
 	int width() const;
 	int height() const;
@@ -199,7 +201,7 @@ public:
 	void load(TMemoryStreamPtr data, const std::string & imageType);
 	
 	//Load image from def file
-	void load(CDefFile * defFile, size_t frame, size_t group);
+	void load(const CDefFile * defFile, size_t frame, size_t group);
 
 	void draw(TImagePtr where, int posX = 0, int posY = 0, Rect * src = NULL, ui8 alpha = 255) const;
 	int width() const;
