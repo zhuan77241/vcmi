@@ -241,17 +241,16 @@ int main(int argc, char** argv)
 	putenv((char*)"SDL_VIDEO_WINDOW_POS");
 	putenv((char*)"SDL_VIDEO_CENTERED=1");
 
-	CStopWatch total, pomtime;
 	std::cout.flags(std::ios::unitbuf);
 	logfile = new std::ofstream((GVCMIDirs.UserPath + "/VCMI_Client_log.txt").c_str());
 	console = new CConsoleHandler;
 	*console->cb = boost::bind(&processCommand, _1);
 	console->start();
 	atexit(dispose);
-	tlog0 <<"Creating console and logfile: "<<pomtime.getDiff() << std::endl;
+	tlog0 <<"Creating console and logfile" << std::endl;
 
 	conf.init();
-	tlog0 <<"Loading settings: "<<pomtime.getDiff() << std::endl;
+	tlog0 <<"Loading settings" << std::endl;
 	tlog0 << NAME << std::endl;
 
 	srand ( time(NULL) );
@@ -265,6 +264,8 @@ int main(int argc, char** argv)
 		exit(-1);
 	}
 	atexit(SDL_Quit);
+
+	CStopWatch total, pomtime;
 
 	setScreenRes(conf.cc.pregameResx, conf.cc.pregameResy, conf.cc.bpp, conf.cc.fullscreen);
 	tlog0 <<"\tInitializing screen: "<<pomtime.getDiff() << std::endl;

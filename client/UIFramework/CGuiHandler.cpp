@@ -467,12 +467,12 @@ void CFramerateManager::framerateDelay()
 	ui32 currentTicks = SDL_GetTicks();
 	timeElapsed = currentTicks - lastticks;
 
-	lastticks = SDL_GetTicks();
-	fps = ceil(1000.0 / timeElapsed);
-
 	// FPS is higher than it should be, then wait some time
 	if (timeElapsed < rateticks)
 	{
 		SDL_Delay(rateticks - timeElapsed);
 	}
+
+	fps = ceil(1000. / (SDL_GetTicks() - lastticks));
+	lastticks = SDL_GetTicks();
 }

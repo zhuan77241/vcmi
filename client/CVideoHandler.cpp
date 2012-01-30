@@ -963,9 +963,7 @@ bool CVideoPlayer::playVideo(int x, int y, SDL_Surface *dst, bool stopOnKey)
 		SDL_DisplayYUVOverlay(overlay, &pos);
 
 		// Wait 3 frames
-		GH.mainFPSmng->framerateDelay();
-		GH.mainFPSmng->framerateDelay();
-		GH.mainFPSmng->framerateDelay();
+		SDL_Delay(3 * ceil(1000 / 48.));
 	}
 
 	return true;

@@ -98,6 +98,7 @@ void CAnimation::setGroup(size_t group, bool repeat /*= false*/)
 void CAnimation::update(double elapsedTime)
 {
 	// TODO: get frames per second default setting, affects animation playing speed
+	// standing anim group shouldn't be faster, etc... -> setGroup should set framesSecond (?)
 	static const double framesSecond = 1 / 24.;
 
 
