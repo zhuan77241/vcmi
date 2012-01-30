@@ -74,9 +74,9 @@ public:
 	std::map<size_t, size_t> getEntries() const;
 };
 
-class SDLImageLoader
+class CSDLImageLoader
 {
-	SDLImage * image;
+	CSDLImage * image;
 	ui8 * lineStart;
 	ui8 * position;
 
@@ -91,14 +91,14 @@ public:
 	//init image with these sizes and palette
 	void init(Point spriteSize, Point margins, Point fullSize, SDL_Color * pal);
 
-	SDLImageLoader(SDLImage * Img);
-	~SDLImageLoader();
+	CSDLImageLoader(CSDLImage * Img);
+	~CSDLImageLoader();
 };
 
 /*
  * Wrapper around SDL_Surface
  */
-class SDLImage : public IImage, public IImageTasks
+class CSDLImage : public IImage, public IImageTasks
 {
 	//Surface without empty borders
 	SDL_Surface * surf;
@@ -112,8 +112,8 @@ class SDLImage : public IImage, public IImageTasks
 
 public:
 	//Load image by memory stream
-	SDLImage();
-	~SDLImage();
+	CSDLImage();
+	~CSDLImage();
 
 	void load(TMemoryStreamPtr data, const std::string & imageType);
 	void load(const CDefFile * defFile, size_t frame, size_t group);
@@ -129,13 +129,13 @@ public:
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha);
 	void rotate(EImageRotation::EImageRotation rotation);
 
-	friend class SDLImageLoader;
-	friend class SDLImage;
+	friend class CSDLImageLoader;
+	friend class CSDLImage;
 };
 
-class CompImageLoader
+class CCompImageLoader
 {
-	CompImage * image;
+	CCompImage * image;
 	ui8 * position;
 	ui8 * entry;
 	ui32 currentLine;
@@ -155,8 +155,8 @@ public:
 	//init image with these sizes and palette
 	void init(Point spriteSize, Point margins, Point fullSize, SDL_Color * pal);
 
-	CompImageLoader(CompImage * img);
-	~CompImageLoader();
+	CCompImageLoader(CCompImage * img);
+	~CCompImageLoader();
 };
 
 /*
@@ -171,7 +171,7 @@ public:
  *  2nd byte = size of segment
  *  raw data (if any)
  */
-class CompImage : public IImage
+class CCompImage : public IImage
 {
 	//x,y - margins, w,h - sprite size
 	Rect sprite;
@@ -194,8 +194,8 @@ class CompImage : public IImage
 	void blitBlockWithBpp(ui8 bpp, ui8 type, ui8 size, ui8 * & data, ui8 * & dest, ui8 alpha, bool rotated) const;
 
 public:
-	CompImage();
-	~CompImage();
+	CCompImage();
+	~CCompImage();
 
 	// TODO: Load image from file(SDL_Surface)
 	void load(TMemoryStreamPtr data, const std::string & imageType);
@@ -211,5 +211,5 @@ public:
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha);
 	void rotate(EImageRotation::EImageRotation rotation);
 
-	friend class CompImageLoader;
+	friend class CCompImageLoader;
 };

@@ -10,23 +10,23 @@
 TImagePtr IImage::createImageFromFile(TMemoryStreamPtr data, const std::string & imageType)
 {
 	// always use SDL when loading image from file 
-	TImagePtr img = shared_ptr<IImage>(new SDLImage());
+	TImagePtr img = shared_ptr<IImage>(new CSDLImage());
 	img->load(data, imageType);
 	return img;
 }
 
 TImagePtr IImage::createSpriteFromDEF(const CDefFile * defFile, size_t frame, size_t group)
 {
-	// always use CompImage when loading from DEF file
+	// always use CCompImage when loading from DEF file
 	// we keep the possibility to load via SDL image
 	static const bool useComp = true;
 
 	TImagePtr img;
 	if (useComp)
-		img = shared_ptr<IImage>(new CompImage());
+		img = shared_ptr<IImage>(new CCompImage());
 
 	else
-		img = shared_ptr<IImage>(new SDLImage());
+		img = shared_ptr<IImage>(new CSDLImage());
 
 	img->load(defFile, frame, group);
 	return img;
@@ -266,11 +266,11 @@ std::map<size_t, size_t> CDefFile::getEntries() const
 	return ret;
 }
 
-SDLImageLoader::SDLImageLoader(SDLImage * Img) : image(Img), lineStart(NULL), position(NULL)
+CSDLImageLoader::CSDLImageLoader(CSDLImage * Img) : image(Img), lineStart(NULL), position(NULL)
 {
 }
 
-void SDLImageLoader::init(Point spriteSize, Point margins, Point fullSize, SDL_Color * pal)
+void CSDLImageLoader::init(Point spriteSize, Point margins, Point fullSize, SDL_Color * pal)
 {
 	//Init image
 	image->surf = SDL_CreateRGBSurface(SDL_SWSURFACE, spriteSize.x, spriteSize.y, 8, 0, 0, 0, 0);
@@ -284,7 +284,7 @@ void SDLImageLoader::init(Point spriteSize, Point margins, Point fullSize, SDL_C
 	lineStart = position = reinterpret_cast<ui8 *>(image->surf->pixels);
 }
 
-void SDLImageLoader::load(size_t size, const ui8 * data)
+void CSDLImageLoader::load(size_t size, const ui8 * data)
 {
 	if (size)
 	{
@@ -293,7 +293,7 @@ void SDLImageLoader::load(size_t size, const ui8 * data)
 	}
 }
 
-void SDLImageLoader::load(size_t size, ui8 color)
+void CSDLImageLoader::load(size_t size, ui8 color)
 {
 	if (size)
 	{
@@ -302,50 +302,50 @@ void SDLImageLoader::load(size_t size, ui8 color)
 	}
 }
 
-void SDLImageLoader::endLine()
+void CSDLImageLoader::endLine()
 {
 	lineStart += image->surf->pitch;
 	position = lineStart;
 }
 
-SDLImageLoader::~SDLImageLoader()
+CSDLImageLoader::~CSDLImageLoader()
 {
 	SDL_UnlockSurface(image->surf);
 	SDL_SetColorKey(image->surf, SDL_SRCCOLORKEY, 0);
 	//TODO: RLE if compressed and bpp>1
 }
 
-SDLImage::SDLImage() : surf(NULL), freeSurf(true)
+CSDLImage::CSDLImage() : surf(NULL), freeSurf(true)
 {
 
 }
 
-SDLImage::~SDLImage()
+CSDLImage::~CSDLImage()
 {
 	if (freeSurf)
 		SDL_FreeSurface(surf);
 }
 
-void SDLImage::load(TMemoryStreamPtr data, const std::string & imageType)
+void CSDLImage::load(TMemoryStreamPtr data, const std::string & imageType)
 {
 	surf = CSDL_Ext::loadImage(data, imageType);
 	freeSurf = true;
 }
 
-void SDLImage::load(const CDefFile * defFile, size_t frame, size_t group)
+void CSDLImage::load(const CDefFile * defFile, size_t frame, size_t group)
 {
-	SDLImageLoader loader(this);
+	CSDLImageLoader loader(this);
 	defFile->loadFrame(frame, group, loader);
 	freeSurf = true;
 }
 
-void SDLImage::load(SDL_Surface * surf, bool freeSurf /*= true*/)
+void CSDLImage::load(SDL_Surface * surf, bool freeSurf /*= true*/)
 {
 	this->surf = surf;
 	this->freeSurf = freeSurf;
 }
 
-void SDLImage::draw(TImagePtr where, int posX, int posY, Rect * src,  ui8 alpha) const
+void CSDLImage::draw(TImagePtr where, int posX, int posY, Rect * src,  ui8 alpha) const
 {
 	if(!surf)
 		return;
@@ -362,47 +362,47 @@ void SDLImage::draw(TImagePtr where, int posX, int posY, Rect * src,  ui8 alpha)
 	destRect += sourceRect.topLeft();
 	sourceRect -= margins;
 	CSDL_Ext::blitSurface(surf, &sourceRect, 
-		dynamic_cast<SDLImage *>(where.get())->getSDL_Surface(), &destRect);
+		dynamic_cast<CSDLImage *>(where.get())->getSDL_Surface(), &destRect);
 }
 
-int SDLImage::width() const
+int CSDLImage::width() const
 {
 	return fullSize.x;
 }
 
-int SDLImage::height() const
+int CSDLImage::height() const
 {
 	return fullSize.y;
 }
 
-SDL_Surface * SDLImage::getSDL_Surface() const
+SDL_Surface * CSDLImage::getSDL_Surface() const
 {
 	return surf;
 }
 
-void SDLImage::recolorToPlayer(int player)
+void CSDLImage::recolorToPlayer(int player)
 {
 	assert(0);
 	//graphics->blueToPlayersAdv(surf, player);
 }
 
-void SDLImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
+void CSDLImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
 {
 	assert(0);
 }
 
-void SDLImage::rotate(EImageRotation::EImageRotation rotation)
+void CSDLImage::rotate(EImageRotation::EImageRotation rotation)
 {
 	assert(0);
 }
 
-CompImageLoader::CompImageLoader(CompImage * Img) : image(Img), position(NULL), entry(NULL),
+CCompImageLoader::CCompImageLoader(CCompImage * Img) : image(Img), position(NULL), entry(NULL),
 	currentLine(0)
 {
 
 }
 
-void CompImageLoader::init(Point spriteSize, Point margins, Point fullSize, SDL_Color * pal)
+void CCompImageLoader::init(Point spriteSize, Point margins, Point fullSize, SDL_Color * pal)
 {
 	image->sprite = Rect(margins, spriteSize);
 	image->fullSize = fullSize;
@@ -421,7 +421,7 @@ void CompImageLoader::init(Point spriteSize, Point margins, Point fullSize, SDL_
 	}
 }
 
-void CompImageLoader::newEntry(ui8 color, size_t size)
+void CCompImageLoader::newEntry(ui8 color, size_t size)
 {
 	assert(color != 0xff);
 	assert(size && size < 256);
@@ -431,7 +431,7 @@ void CompImageLoader::newEntry(ui8 color, size_t size)
 	position += 2;
 }
 
-void CompImageLoader::newEntry(const ui8 * & data, size_t size)
+void CCompImageLoader::newEntry(const ui8 * & data, size_t size)
 {
 	assert(size && size < 256);
 	entry = position;
@@ -443,7 +443,7 @@ void CompImageLoader::newEntry(const ui8 * & data, size_t size)
 	data += size;
 }
 
-ui8 CompImageLoader::typeOf(ui8 color)
+ui8 CCompImageLoader::typeOf(ui8 color)
 {
 	if(color == 0)
 		return 0;
@@ -452,7 +452,7 @@ ui8 CompImageLoader::typeOf(ui8 color)
 	return 2;
 }
 
-void CompImageLoader::load(size_t size, const ui8 * data)
+void CCompImageLoader::load(size_t size, const ui8 * data)
 {
 	while(size)
 	{
@@ -522,7 +522,7 @@ void CompImageLoader::load(size_t size, const ui8 * data)
 	}
 }
 
-void CompImageLoader::load(size_t size, ui8 color)
+void CCompImageLoader::load(size_t size, ui8 color)
 {
 	if(!size)
 		return;
@@ -553,7 +553,7 @@ void CompImageLoader::load(size_t size, ui8 color)
 		newEntry(color, size);
 }
 
-void CompImageLoader::endLine()
+void CCompImageLoader::endLine()
 {
 	++currentLine;
 	image->line[currentLine] = position - image->surf;
@@ -561,7 +561,7 @@ void CompImageLoader::endLine()
 
 }
 
-CompImageLoader::~CompImageLoader()
+CCompImageLoader::~CCompImageLoader()
 {
 	if(!image->surf)
 		return;
@@ -573,31 +573,31 @@ CompImageLoader::~CompImageLoader()
 		image->surf = newPtr;
 }
 
-CompImage::CompImage() : surf(NULL), line(NULL),
+CCompImage::CCompImage() : surf(NULL), line(NULL),
 	palette(NULL)
 {
 }
 
-CompImage::~CompImage()
+CCompImage::~CCompImage()
 {
 	free(surf);
 	delete [] line;
 	delete [] palette;
 }
 
-void CompImage::load(const CDefFile * defFile, size_t frame, size_t group)
+void CCompImage::load(const CDefFile * defFile, size_t frame, size_t group)
 {
-	CompImageLoader loader(this);
+	CCompImageLoader loader(this);
 	defFile->loadFrame(frame, group, loader);
 }
 
-void CompImage::load(TMemoryStreamPtr data, const std::string & imageType)
+void CCompImage::load(TMemoryStreamPtr data, const std::string & imageType)
 {
 	// TODO
 	assert(0);
 }
 
-void CompImage::draw(TImagePtr where, int posX, int posY, Rect * src, ui8 alpha /* =255*/) const
+void CCompImage::draw(TImagePtr where, int posX, int posY, Rect * src, ui8 alpha /* =255*/) const
 {
 	int rotation = 0; //TODO
 	//rotation & 2 = horizontal rotation
@@ -612,7 +612,7 @@ void CompImage::draw(TImagePtr where, int posX, int posY, Rect * src, ui8 alpha 
 		sourceRect = sourceRect & *src;
 	
 	//Limit source rect to sizes of surface
-	SDL_Surface * screen = dynamic_cast<SDLImage *>(where.get())->getSDL_Surface();
+	SDL_Surface * screen = dynamic_cast<CSDLImage *>(where.get())->getSDL_Surface();
 	sourceRect = sourceRect & Rect(0, 0, screen->w, screen->h);
 
 	//Starting point on SDL surface
@@ -676,7 +676,7 @@ void CompImage::draw(TImagePtr where, int posX, int posY, Rect * src, ui8 alpha 
 #define CASEBPP(x,y) case x: blitBlock<x,y>(type, size, data, dest, alpha); break
 
 //FIXME: better way to get blitter
-void CompImage::blitBlockWithBpp(ui8 bpp, ui8 type, ui8 size, ui8 *&data, ui8 *&dest, ui8 alpha, bool rotated) const
+void CCompImage::blitBlockWithBpp(ui8 bpp, ui8 type, ui8 size, ui8 *&data, ui8 *&dest, ui8 alpha, bool rotated) const
 {
 	assert(bpp > 1 && bpp < 5);
 
@@ -699,7 +699,7 @@ void CompImage::blitBlockWithBpp(ui8 bpp, ui8 type, ui8 size, ui8 *&data, ui8 *&
 
 //Blit one block from RLE-d surface
 template<int bpp, int dir>
-void CompImage::blitBlock(ui8 type, ui8 size, ui8 *&data, ui8 * & dest, ui8 alpha) const
+void CCompImage::blitBlock(ui8 type, ui8 size, ui8 *&data, ui8 * & dest, ui8 alpha) const
 {
 	//Raw data
 	if (type == 0xff)
@@ -768,17 +768,17 @@ void CompImage::blitBlock(ui8 type, ui8 size, ui8 *&data, ui8 * & dest, ui8 alph
 	}
 }
 
-int CompImage::width() const
+int CCompImage::width() const
 {
 	return fullSize.x;
 }
 
-int CompImage::height() const
+int CCompImage::height() const
 {
 	return fullSize.y;
 }
 
-void CompImage::recolorToPlayer(int player)
+void CCompImage::recolorToPlayer(int player)
 {
 	SDL_Color * pal = NULL;
 	if(player < GameConstants::PLAYER_LIMIT && player >= 0)
@@ -801,12 +801,12 @@ void CompImage::recolorToPlayer(int player)
 	}
 }
 
-void CompImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
+void CCompImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
 {
 	assert(0);
 }
 
-void CompImage::rotate(EImageRotation::EImageRotation rotation)
+void CCompImage::rotate(EImageRotation::EImageRotation rotation)
 {
 	assert(0);
 }

@@ -6,7 +6,7 @@
 #include "vcmi_endian.h"
 #include "VCMIDirs.h"
 
-ui8 CMemoryStream::readInt8()
+ui8 CMemoryStream::readInt8() const
 {
 	assert(seekPos < length);
 	
@@ -15,7 +15,7 @@ ui8 CMemoryStream::readInt8()
 	return rslt;
 }
 
-ui16 CMemoryStream::readInt16()
+ui16 CMemoryStream::readInt16() const
 {
 	assert(seekPos < length - 1);
 	
@@ -24,7 +24,7 @@ ui16 CMemoryStream::readInt16()
 	return rslt;
 }
 
-ui32 CMemoryStream::readInt32()
+ui32 CMemoryStream::readInt32() const
 {
 	assert(seekPos < length - 3);
 
@@ -64,14 +64,32 @@ CMemoryStream & CMemoryStream::operator=(const CMemoryStream & cpy)
 	return *this;
 }
 
-ui8 * CMemoryStream::getRawData() const
+CMemoryStream::~CMemoryStream()
+{
+	delete[] data;
+}
+
+ui8 * CMemoryStream::cloneRawData() const
+{
+	ui8 * cloned = new ui8[length];
+	memcpy(cloned, data, length);
+	return cloned;
+}
+
+const ui8 * CMemoryStream::getRawData() const
 {
 	return data;
 }
 
-ui8 * CMemoryStream::getRawData(size_t seekPos) const
+const ui8 * CMemoryStream::getRawData(size_t seekPos) const
 {
 	return data + seekPos;
+}
+
+std::string CMemoryStream::getDataAsString() const
+{
+	std::string rslt(data, data + length); 
+	return rslt;
 }
 
 void CMemoryStream::writeToFile(const std::string & destFile) const
@@ -81,13 +99,13 @@ void CMemoryStream::writeToFile(const std::string & destFile) const
 	out.close();
 }
 
-void CMemoryStream::setSeekPos(size_t pos)
+void CMemoryStream::setSeekPos(size_t pos) const
 {
 	assert(pos < length);
 	seekPos = pos;
 }
 
-void CMemoryStream::reset()
+void CMemoryStream::reset() const
 { 
 	seekPos = 0; 
 }
@@ -107,7 +125,7 @@ bool CMemoryStream::moreBytesToRead() const
 	return seekPos < length; 
 }
 
-void CMemoryStream::incSeekPos(size_t add)
+void CMemoryStream::incSeekPos(size_t add) const
 {
 	seekPos += add;
 }

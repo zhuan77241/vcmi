@@ -29,7 +29,7 @@ public:
 	static TAnimationPtr createAnimation(const CDefFile * defFile, size_t group = -1);
 };
 
-class ImageBasedAnimation : public IAnimation
+class CImageBasedAnimation : public IAnimation
 {
 	// images[group][frame], store objects with loaded images
 	std::map<size_t, std::map<size_t, TImagePtr> > images;

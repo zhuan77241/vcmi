@@ -15,8 +15,8 @@
 
 class IImage;
 class IImageTasks;
-class SDLImage;
-class CompImage;
+class CSDLImage;
+class CCompImage;
 struct SDL_Surface;
 class CDefFile;
 

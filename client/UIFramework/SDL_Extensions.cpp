@@ -1393,7 +1393,9 @@ SDL_Surface * CSDL_Ext::loadImage(TMemoryStreamPtr data, const std::string & ima
 	}
 	else
 	{
-		rslt = IMG_LoadTyped_RW(SDL_RWFromMem(reinterpret_cast<void *>(data->getRawData()), 
+		// remove const from data, as it won't be modified during loading 
+		ui8 * rawData = const_cast<ui8 *>(data->getRawData());
+		rslt = IMG_LoadTyped_RW(SDL_RWFromMem(reinterpret_cast<void *>(rawData), 
 			data->getLength()), 0, const_cast<char *>(imageType.c_str()));
 	}
 	

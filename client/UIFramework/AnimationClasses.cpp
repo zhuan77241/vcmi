@@ -12,7 +12,7 @@ TAnimationPtr IAnimation::createAnimation(const CDefFile * defFile, size_t group
 	TAnimationPtr anim;
 	if (useImageBased)
 	{
-		anim = shared_ptr<IAnimation>(new ImageBasedAnimation);
+		anim = shared_ptr<IAnimation>(new CImageBasedAnimation);
 	}
 	else
 	{
@@ -32,7 +32,7 @@ std::map<size_t, size_t> IAnimation::getEntries() const
 	return entries;
 }
 
-void ImageBasedAnimation::load(const CDefFile * defFile)
+void CImageBasedAnimation::load(const CDefFile * defFile)
 {
 	images.clear();
 	entries = defFile->getEntries();
@@ -42,7 +42,7 @@ void ImageBasedAnimation::load(const CDefFile * defFile)
 			images[group->first][frame] = IImage::createSpriteFromDEF(defFile, frame, group->first);
 }
 
-void ImageBasedAnimation::load(const CDefFile * defFile, size_t group)
+void CImageBasedAnimation::load(const CDefFile * defFile, size_t group)
 {
 	images.clear();
 	entries = defFile->getEntries();
@@ -52,7 +52,7 @@ void ImageBasedAnimation::load(const CDefFile * defFile, size_t group)
 			images[group][frame] = IImage::createSpriteFromDEF(defFile, frame, group);
 }
 
-void ImageBasedAnimation::draw(TImagePtr where, size_t frame, size_t group, int posX, int posY)
+void CImageBasedAnimation::draw(TImagePtr where, size_t frame, size_t group, int posX, int posY)
 {
 	if(vstd::contains(images, group))
 	{

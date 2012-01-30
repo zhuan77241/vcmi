@@ -17,7 +17,7 @@ class DLL_LINKAGE CMemoryStream
 {
 private:
 	ui8 * data;
-	size_t seekPos;
+	mutable size_t seekPos;
 	size_t length;
 
 public:
@@ -25,23 +25,24 @@ public:
 	explicit CMemoryStream(const std::string & filePath);
 	CMemoryStream(const CMemoryStream & cpy);
 	CMemoryStream & operator=(const CMemoryStream & cpy);
-	~CMemoryStream() { delete[] data; }
+	~CMemoryStream();
 
 	bool moreBytesToRead() const;
 	size_t getLength() const;
-	void reset();
+	void reset() const;
 	size_t getSeekPos() const;
-	void setSeekPos(size_t pos);
-	void incSeekPos(size_t add);
+	void setSeekPos(size_t pos) const;
+	void incSeekPos(size_t add) const;
 
-	ui8 readInt8();
-	ui16 readInt16();
-	ui32 readInt32();
+	ui8 readInt8() const;
+	ui16 readInt16() const;
+	ui32 readInt32() const;
 	
 	// Gets raw ui8 pointer of data. Do not delete that data. Ownership belongs to CMemoryStream.
-	ui8 * getRawData() const;
-	ui8 * getRawData(size_t seekPos) const;
-	std::string getDataAsString() const { std::string rslt(data, data + length); return rslt; }
+	const ui8 * getRawData() const;
+	const ui8 * getRawData(size_t seekPos) const;
+	ui8 * cloneRawData() const;
+	std::string getDataAsString() const;
 	void writeToFile(const std::string & destFile) const;
 };
 

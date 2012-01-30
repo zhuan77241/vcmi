@@ -11,7 +11,7 @@
  */
 
 class IAnimation;
-class ImageBasedAnimation;
+class CImageBasedAnimation;
 class CAnimation;
 
 typedef shared_ptr<IAnimation> TAnimationPtr;
