@@ -20,8 +20,8 @@ class CCompImage;
 struct SDL_Surface;
 class CDefFile;
 
-typedef shared_ptr<IImage> TImagePtr;
-
+typedef shared_ptr<const IImage> TImagePtr;
+typedef shared_ptr<IImage> TMutableImagePtr;
 
 /*
  * Enumeration for the glow effect
@@ -45,20 +45,43 @@ namespace EImageRotation
 	};
 }
 
-struct GraphicsLocator : public ResourceLocator
+struct GraphicsSelector
 {
-	size_t frame, group;
+	si8 frame, group;
 
 	// TODO: add imageTask queries, transformations,...
+	si8 playerColor;
 
-	GraphicsLocator() : ResourceLocator(), frame(0), group(0) { };
-	GraphicsLocator(IResourceLoader * Loader, const std::string & ResourceName) 
-		: ResourceLocator(Loader, ResourceName), frame(0), group(0) { };
+	GraphicsSelector(si8 Group = -1, si8 Frame = 0) : frame(Frame), group(Group), playerColor(-1) { };
+
+	inline bool operator==(GraphicsSelector const & other) const
+	{
+		return frame == other.frame && group == other.group && playerColor == other.playerColor;
+	}
+
+	inline friend std::size_t hash_value(GraphicsSelector const & p)
+	{
+		std::size_t seed = 0;
+		boost::hash_combine(seed, p.frame);
+		boost::hash_combine(seed, p.group);
+		boost::hash_combine(seed, p.playerColor);
+
+		return seed;
+	}
+};
+
+struct GraphicsLocator : public ResourceLocator
+{
+	GraphicsSelector sel;
+
+	GraphicsLocator() : ResourceLocator() { };
+	GraphicsLocator(IResourceLoader * Loader, const std::string & ResourceName, const GraphicsSelector & Sel) 
+		: ResourceLocator(Loader, ResourceName), sel(Sel) { };
 
 	inline bool operator==(GraphicsLocator const & other) const
 	{
 		return loader == other.loader && resourceName == other.resourceName
-			&& frame == other.frame && group == other.group;
+			&& sel == other.sel;
 	}
 
 	inline friend std::size_t hash_value(GraphicsLocator const & p)
@@ -66,9 +89,23 @@ struct GraphicsLocator : public ResourceLocator
 		std::size_t seed = 0;
 		boost::hash_combine(seed, p.loader);
 		boost::hash_combine(seed, p.resourceName);
-		boost::hash_combine(seed, p.frame);
-		boost::hash_combine(seed, p.group);
+		boost::hash_combine(seed, p.sel);
 
 		return seed;
 	}
+};
+
+/*
+ * Interface for VCMI related graphics tasks like player coloring
+ */
+class IGraphicsTasks
+{
+public:
+	// Change palette to specific player.
+	virtual void recolorToPlayer(int player) =0;
+
+	// Sets/Unsets the yellow or blue glow animation effect.
+	virtual void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) =0;
+
+	virtual void rotate(EImageRotation::EImageRotation rotation) =0;
 };

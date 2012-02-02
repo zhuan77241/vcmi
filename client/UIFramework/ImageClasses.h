@@ -15,42 +15,50 @@
  */
 
 /*
- * Interface for images
+ * Interface for VCMI related image tasks like player coloring
  */
-class IImage
+class IImageTasks : public IGraphicsTasks
 {
 public:
+	// Change palette to specific player.
+	virtual TImagePtr recolorToPlayer(int player) const =0;
+
+	// Sets/Unsets the yellow or blue glow animation effect.
+	virtual TImagePtr setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const =0;
+
+	virtual TImagePtr rotate(EImageRotation::EImageRotation rotation) const =0;
+};
+
+/*
+ * Interface for images
+ */
+class IImage : public IImageTasks
+{
+protected:
+	GraphicsLocator locator;
+
 	// Loads an image from memory.
 	// Params: imageType		E.g.: PCX, TGA, BMP, DEF
 	virtual void load(TMemoryStreamPtr data, const std::string & imageType) =0;
-	
+
 	// Loads an sprite image from DEF file.
 	virtual void load(const CDefFile * defFile, size_t frame, size_t group) =0;
+
+public:
+	virtual ~IImage() { };
+	virtual IImage * clone() const =0;
 
 	// draws image on surface "where" at position
 	virtual void draw(TImagePtr where, int posX = 0, int posY = 0, Rect * src = NULL, ui8 alpha = 255) const =0;
 
 	virtual int width() const=0;
 	virtual int height() const=0;
-	virtual ~IImage() {};
 
-	static TImagePtr createImageFromFile(TMemoryStreamPtr data, const std::string & imageType);
-	static TImagePtr createSpriteFromDEF(const CDefFile * defFile, size_t frame, size_t group);
-};
+	static TMutableImagePtr createImageFromFile(TMemoryStreamPtr data, const std::string & imageType);
+	static TMutableImagePtr createSpriteFromDEF(const CDefFile * defFile, size_t frame, size_t group);
+	static TMutableImagePtr createSDLSurface(SDL_Surface * surf);
 
-/*
- * Interface for VCMI related image tasks like player coloring
- */
-class IImageTasks
-{
-public:
-	// Change palette to specific player.
-	virtual void recolorToPlayer(int player) =0;
-
-	// Sets/Unsets the yellow or blue glow animation effect.
-	virtual void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) =0;
-
-	virtual void rotate(EImageRotation::EImageRotation rotation) =0;
+	friend class CResourceHandler;
 };
 
 /// Class for def loading, methods are based on CDefHandler
@@ -98,7 +106,7 @@ public:
 /*
  * Wrapper around SDL_Surface
  */
-class CSDLImage : public IImage, public IImageTasks
+class CSDLImage : public IImage
 {
 	//Surface without empty borders
 	SDL_Surface * surf;
@@ -110,14 +118,20 @@ class CSDLImage : public IImage, public IImageTasks
 	//total size including borders
 	Point fullSize;
 
-public:
-	//Load image by memory stream
+protected:
 	CSDLImage();
-	~CSDLImage();
+	CSDLImage(const CSDLImage & cpy);
+	CSDLImage & operator=(const CSDLImage & cpy);
 
+	//Load image by memory stream
 	void load(TMemoryStreamPtr data, const std::string & imageType);
 	void load(const CDefFile * defFile, size_t frame, size_t group);
 	void load(SDL_Surface * surf, bool freeSurf = true);
+
+public:
+	~CSDLImage();
+
+	IImage * clone() const;
 	void draw(TImagePtr where, int posX = 0, int posY = 0, Rect * src = NULL,  ui8 alpha = 255) const;
 	int width() const;
 	int height() const;
@@ -125,12 +139,17 @@ public:
 	// Get raw pointer to SDL surface. It's only needed for SDL related tasks.
 	SDL_Surface * getSDL_Surface() const;
 
+	TImagePtr recolorToPlayer(int player) const;
 	void recolorToPlayer(int player);
+
+	TImagePtr setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const;
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha);
+
+	TImagePtr rotate(EImageRotation::EImageRotation rotation) const;
 	void rotate(EImageRotation::EImageRotation rotation);
 
 	friend class CSDLImageLoader;
-	friend class CSDLImage;
+	friend class IImage;
 };
 
 class CCompImageLoader
@@ -182,6 +201,9 @@ class CCompImage : public IImage
 	//RLE-d data
 	ui8 * surf;
 
+	// Length of surf, needed for cpy-ctor
+	size_t length;
+
 	//array of offsets for each line
 	ui32 * line;
 
@@ -193,23 +215,35 @@ class CCompImage : public IImage
 	void blitBlock(ui8 type, ui8 size, ui8 * & data, ui8 * & dest, ui8 alpha) const;
 	void blitBlockWithBpp(ui8 bpp, ui8 type, ui8 size, ui8 * & data, ui8 * & dest, ui8 alpha, bool rotated) const;
 
-public:
+protected:
 	CCompImage();
-	~CCompImage();
+	CCompImage(const CCompImage & cpy);
+	CCompImage & operator=(const CCompImage & cpy);
 
 	// TODO: Load image from file(SDL_Surface)
 	void load(TMemoryStreamPtr data, const std::string & imageType);
-	
+
 	//Load image from def file
 	void load(const CDefFile * defFile, size_t frame, size_t group);
+
+public:
+	~CCompImage();
+
+	IImage * clone() const;
 
 	void draw(TImagePtr where, int posX = 0, int posY = 0, Rect * src = NULL, ui8 alpha = 255) const;
 	int width() const;
 	int height() const;
 
+	TImagePtr recolorToPlayer(int player) const;
 	void recolorToPlayer(int player);
+
+	TImagePtr setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const;
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha);
+
+	TImagePtr rotate(EImageRotation::EImageRotation rotation) const;
 	void rotate(EImageRotation::EImageRotation rotation);
 
 	friend class CCompImageLoader;
+	friend class IImage;
 };

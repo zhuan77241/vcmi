@@ -14,4 +14,5 @@ class IAnimation;
 class CImageBasedAnimation;
 class CAnimation;
 
-typedef shared_ptr<IAnimation> TAnimationPtr;
+typedef shared_ptr<const IAnimation> TAnimationPtr;
+typedef shared_ptr<IAnimation> TMutableAnimationPtr;

@@ -14,14 +14,40 @@
  *
  */
 
+typedef boost::unordered_map<const GraphicsLocator, weak_ptr<const IImage> > TImageMap;
+typedef boost::unordered_map<const GraphicsLocator, weak_ptr<const IAnimation> > TAnimationMap;
+
 class CResourceHandler
 {
-	boost::unordered_map<const GraphicsLocator, weak_ptr<IImage> > images;
-	boost::unordered_map<const GraphicsLocator, weak_ptr<IAnimation> > animations;
+	TImageMap images;
+	TAnimationMap animations;
 
-	TImagePtr loadImage(const GraphicsLocator & gloc);
-	TAnimationPtr loadAnimation(const GraphicsLocator & gloc);
+	void loadResource(const GraphicsLocator & gloc, TImagePtr & img);
+	void loadResource(const GraphicsLocator & gloc, TAnimationPtr & anim);
 
+	// Gets a resource by a exact location.
+	template <typename IResource, typename Storage>
+	shared_ptr<IResource> getResource(Storage & storage, const GraphicsLocator & gloc);
+
+	// Gets a resource by an identifier.
+	template <typename IResource, typename Storage>
+	shared_ptr<IResource> getResource(Storage &storage, const ResourceIdentifier & identifier, const GraphicsSelector & sel, bool fromBegin = false);
+
+	template <typename IResource, typename Storage>
+	shared_ptr<const IResource> setResource(IResource * res, Storage & storage, const GraphicsLocator & newLoc, const GraphicsLocator & oldLoc);
+
+	TImagePtr getImage(const GraphicsLocator & gloc);
+	TImagePtr setImage(IImage * img, const GraphicsLocator & newLoc, const GraphicsLocator & oldLoc);
+
+	TAnimationPtr getAnimation(const GraphicsLocator & gloc);
+	TAnimationPtr setAnimation(IAnimation * anim, const GraphicsLocator & newLoc, const GraphicsLocator & oldLoc);
+
+	template <typename IResource, typename Storage>
+	bool isResourceUnique(Storage & storage, const GraphicsLocator & locator);
+
+	// Checks if the image used is unique. Deletes the weak ptr 
+	bool isImageUnique(const GraphicsLocator & locator);
+	bool isAnimationUnique(const GraphicsLocator & locator);
 public:
 
 	// Loads an image.
@@ -30,7 +56,14 @@ public:
 	// Loads a frame/sprite.
 	TImagePtr getImage(const ResourceIdentifier & identifier, size_t frame, size_t group, bool fromBegin = false);
 
+	// Loads complete animation(all groups).
 	TAnimationPtr getAnimation(const ResourceIdentifier & identifier, bool fromBegin = false);
 
+	// Loads a group of an animation.
 	TAnimationPtr getAnimation(const ResourceIdentifier & identifier, size_t group, bool fromBegin = false);
+
+	// This is needed because get/setImage/Animation via locator directly from "outside"
+	friend class CSDLImage;
+	friend class CCompImage;
+	friend class CImageBasedAnimation;
 };

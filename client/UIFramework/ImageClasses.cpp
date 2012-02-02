@@ -6,22 +6,24 @@
 #include "../../lib/vcmi_endian.h"
 #include "../../lib/GameConstants.h"
 #include "../Graphics.h"
+#include "../CGameInfo.h"
+#include "../CResourceHandler.h"
 
-TImagePtr IImage::createImageFromFile(TMemoryStreamPtr data, const std::string & imageType)
+TMutableImagePtr IImage::createImageFromFile(TMemoryStreamPtr data, const std::string & imageType)
 {
 	// always use SDL when loading image from file 
-	TImagePtr img = shared_ptr<IImage>(new CSDLImage());
+	TMutableImagePtr img = shared_ptr<IImage>(new CSDLImage());
 	img->load(data, imageType);
 	return img;
 }
 
-TImagePtr IImage::createSpriteFromDEF(const CDefFile * defFile, size_t frame, size_t group)
+TMutableImagePtr IImage::createSpriteFromDEF(const CDefFile * defFile, size_t frame, size_t group)
 {
 	// always use CCompImage when loading from DEF file
 	// we keep the possibility to load via SDL image
 	static const bool useComp = true;
 
-	TImagePtr img;
+	TMutableImagePtr img;
 	if (useComp)
 		img = shared_ptr<IImage>(new CCompImage());
 
@@ -30,6 +32,13 @@ TImagePtr IImage::createSpriteFromDEF(const CDefFile * defFile, size_t frame, si
 
 	img->load(defFile, frame, group);
 	return img;
+}
+
+TMutableImagePtr IImage::createSDLSurface(SDL_Surface * surf)
+{
+	CSDLImage * img = new CSDLImage();
+	img->load(surf, false);
+	return shared_ptr<IImage>(img);
 }
 
 CDefFile::CDefFile(TMemoryStreamPtr Data): palette(NULL)
@@ -315,7 +324,7 @@ CSDLImageLoader::~CSDLImageLoader()
 	//TODO: RLE if compressed and bpp>1
 }
 
-CSDLImage::CSDLImage() : surf(NULL), freeSurf(true)
+CSDLImage::CSDLImage() : IImage(), surf(NULL), freeSurf(true)
 {
 
 }
@@ -326,14 +335,37 @@ CSDLImage::~CSDLImage()
 		SDL_FreeSurface(surf);
 }
 
+CSDLImage::CSDLImage(const CSDLImage & cpy)
+{
+	*this = cpy;
+}
+
+CSDLImage & CSDLImage::operator=(const CSDLImage & cpy)
+{
+	surf = SDL_ConvertSurface(cpy.surf, cpy.surf->format, cpy.surf->flags);
+	freeSurf = cpy.freeSurf;
+	margins = cpy.margins;
+	fullSize = cpy.fullSize;
+	return *this;
+}
+
+IImage * CSDLImage::clone() const
+{
+	return new CSDLImage(*this);
+}
+
 void CSDLImage::load(TMemoryStreamPtr data, const std::string & imageType)
 {
+	assert(this->surf == NULL);
+
 	surf = CSDL_Ext::loadImage(data, imageType);
 	freeSurf = true;
 }
 
 void CSDLImage::load(const CDefFile * defFile, size_t frame, size_t group)
 {
+	assert(this->surf == NULL);
+
 	CSDLImageLoader loader(this);
 	defFile->loadFrame(frame, group, loader);
 	freeSurf = true;
@@ -341,6 +373,8 @@ void CSDLImage::load(const CDefFile * defFile, size_t frame, size_t group)
 
 void CSDLImage::load(SDL_Surface * surf, bool freeSurf /*= true*/)
 {
+	assert(this->surf == NULL);
+
 	this->surf = surf;
 	this->freeSurf = freeSurf;
 }
@@ -362,7 +396,7 @@ void CSDLImage::draw(TImagePtr where, int posX, int posY, Rect * src,  ui8 alpha
 	destRect += sourceRect.topLeft();
 	sourceRect -= margins;
 	CSDL_Ext::blitSurface(surf, &sourceRect, 
-		dynamic_cast<CSDLImage *>(where.get())->getSDL_Surface(), &destRect);
+		dynamic_cast<CSDLImage *>(const_cast<IImage *>(where.get()))->getSDL_Surface(), &destRect);
 }
 
 int CSDLImage::width() const
@@ -382,8 +416,46 @@ SDL_Surface * CSDLImage::getSDL_Surface() const
 
 void CSDLImage::recolorToPlayer(int player)
 {
-	assert(0);
-	//graphics->blueToPlayersAdv(surf, player);
+	if(surf->format->BitsPerPixel == 8)
+	{
+		SDL_Color * palette = NULL;
+		if(player < GameConstants::PLAYER_LIMIT && player >= 0)
+		{
+			palette = graphics->playerColorPalette + 32 * player;
+		}
+		else if(player == 255 || player == -1)
+		{
+			palette = graphics->neutralColorPalette;
+		}
+		else
+		{
+			tlog1 << "Wrong player id in blueToPlayersAdv (" << player << ")!\n";
+			return;
+		}
+
+		SDL_SetColors(surf, palette, 224, 32);
+	}
+}
+
+TImagePtr CSDLImage::recolorToPlayer(int player) const
+{
+	GraphicsLocator loc = locator;
+	loc.sel.playerColor = player;
+	TImagePtr img = CCS->resh->getImage(loc);
+
+	if (img)
+		return img;
+	else
+	{
+		CSDLImage * sdl;
+		if (CCS->resh->isImageUnique(locator))
+			sdl = const_cast<CSDLImage *>(this);
+		else
+			sdl = new CSDLImage(*this);
+
+		sdl->recolorToPlayer(player);
+		return CCS->resh->setImage(sdl, loc, locator);
+	}
 }
 
 void CSDLImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
@@ -394,6 +466,20 @@ void CSDLImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType
 void CSDLImage::rotate(EImageRotation::EImageRotation rotation)
 {
 	assert(0);
+}
+
+TImagePtr CSDLImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const
+{
+	assert(0);
+	TImagePtr ptr;
+	return ptr;
+}
+
+TImagePtr CSDLImage::rotate(EImageRotation::EImageRotation rotation) const
+{
+	assert(0);
+	TImagePtr ptr;
+	return ptr;
 }
 
 CCompImageLoader::CCompImageLoader(CCompImage * Img) : image(Img), position(NULL), entry(NULL),
@@ -566,16 +652,53 @@ CCompImageLoader::~CCompImageLoader()
 	if(!image->surf)
 		return;
 
+	size_t length = position - image->surf;
 	ui8 * newPtr = reinterpret_cast<ui8 *>(realloc(reinterpret_cast<void *>(image->surf), 
-		position - image->surf));
+		length));
 
 	if (newPtr)
+	{
+		image->length = length;
 		image->surf = newPtr;
+	}
 }
 
-CCompImage::CCompImage() : surf(NULL), line(NULL),
-	palette(NULL)
+CCompImage::CCompImage() : IImage(), surf(NULL), length(0), 
+	line(NULL), palette(NULL)
 {
+
+}
+
+CCompImage::CCompImage(const CCompImage & cpy)
+{
+	*this = cpy;
+}
+
+CCompImage & CCompImage::operator=(const CCompImage & cpy)
+{
+	fullSize = cpy.fullSize;
+	locator = cpy.locator;
+	length = cpy.length;
+	sprite = cpy.sprite;
+
+	palette = new SDL_Color[256];
+	memcpy(reinterpret_cast<void *>(palette), 
+		reinterpret_cast<void *>(cpy.palette), 256 * sizeof(SDL_Color));
+
+	surf = reinterpret_cast<ui8 *>(malloc(length));
+	memcpy(reinterpret_cast<void *>(surf), 
+		reinterpret_cast<void *>(cpy.surf), length);
+
+	line = new ui32[sprite.h + 1];
+	memcpy(reinterpret_cast<void *>(line), 
+		reinterpret_cast<void *>(cpy.line), (sprite.h + 1) * sizeof(ui32));
+
+	return *this;
+}
+
+IImage * CCompImage::clone() const
+{
+	return new CCompImage(*this);
 }
 
 CCompImage::~CCompImage()
@@ -587,6 +710,8 @@ CCompImage::~CCompImage()
 
 void CCompImage::load(const CDefFile * defFile, size_t frame, size_t group)
 {
+	assert(this->surf == NULL);
+
 	CCompImageLoader loader(this);
 	defFile->loadFrame(frame, group, loader);
 }
@@ -612,7 +737,7 @@ void CCompImage::draw(TImagePtr where, int posX, int posY, Rect * src, ui8 alpha
 		sourceRect = sourceRect & *src;
 	
 	//Limit source rect to sizes of surface
-	SDL_Surface * screen = dynamic_cast<CSDLImage *>(where.get())->getSDL_Surface();
+	SDL_Surface * screen = dynamic_cast<CSDLImage *>(const_cast<IImage *>(where.get()))->getSDL_Surface();
 	sourceRect = sourceRect & Rect(0, 0, screen->w, screen->h);
 
 	//Starting point on SDL surface
@@ -794,10 +919,31 @@ void CCompImage::recolorToPlayer(int player)
 
 	for(size_t i = 0; i < 32; ++i)
 	{
-		palette[224+i].r = pal[i].r;
-		palette[224+i].g = pal[i].g;
-		palette[224+i].b = pal[i].b;
-		palette[224+i].unused = pal[i].unused;
+		palette[224 + i].r = pal[i].r;
+		palette[224 + i].g = pal[i].g;
+		palette[224 + i].b = pal[i].b;
+		palette[224 + i].unused = pal[i].unused;
+	}
+}
+
+TImagePtr CCompImage::recolorToPlayer(int player) const
+{
+	GraphicsLocator loc = locator;
+	loc.sel.playerColor = player;
+	TImagePtr img = CCS->resh->getImage(loc);
+
+	if (img)
+		return img;
+	else
+	{
+		CCompImage * comp;
+		if (CCS->resh->isImageUnique(locator))
+			comp = const_cast<CCompImage *>(this);
+		else
+			comp = new CCompImage(*this);
+
+		comp->recolorToPlayer(player);
+		return CCS->resh->setImage(comp, loc, locator);
 	}
 }
 
@@ -806,7 +952,21 @@ void CCompImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowTyp
 	assert(0);
 }
 
+TImagePtr CCompImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const
+{
+	assert(0);
+	TImagePtr ptr;
+	return ptr;
+}
+
 void CCompImage::rotate(EImageRotation::EImageRotation rotation)
 {
 	assert(0);
+}
+
+TImagePtr CCompImage::rotate(EImageRotation::EImageRotation rotation) const
+{
+	assert(0);
+	TImagePtr ptr;
+	return ptr;
 }
