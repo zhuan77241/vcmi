@@ -390,7 +390,7 @@ void CGuiHandler::drawFPSCounter()
 	static SDL_Rect overlay = { 0, 0, 64, 32};
 	Uint32 black = SDL_MapRGB(screen->format, 10, 10, 10);
 	SDL_FillRect(screen, &overlay, black);
-	std::string fps = boost::lexical_cast<std::string>(mainFPSmng->fps);
+	std::string fps = boost::lexical_cast<std::string>(mainFPSmng->getFPS());
 	CSDL_Ext::printAt(fps, 10, 10, FONT_BIG, yellow, screen);
 }
 
@@ -451,28 +451,38 @@ bool CGuiHandler::isArrowKey( SDLKey key )
 	return key >= SDLK_UP && key <= SDLK_LEFT;
 }
 
-
-CFramerateManager::CFramerateManager(ui32 Rate) : fps(0), rate(Rate)
+CFramerateManager::CFramerateManager(ui32 Rate) : lastticks(0), rate(Rate), timeElapsed(0), fps(0)
 {
 	rateticks = ceil(1000.0 / rate);
 }
 
 void CFramerateManager::init()
 {
-	this->lastticks = SDL_GetTicks();
+	lastticks = SDL_GetTicks();
 }
 
 void CFramerateManager::framerateDelay()
 {
 	ui32 currentTicks = SDL_GetTicks();
-	timeElapsed = currentTicks - lastticks;
 
 	// FPS is higher than it should be, then wait some time
-	if (timeElapsed < rateticks)
+	int sleepTime = static_cast<si32>(rateticks) - (currentTicks - lastticks);
+	if(sleepTime > 0)
 	{
-		SDL_Delay(rateticks - timeElapsed);
+		SDL_Delay(sleepTime);
 	}
 
-	fps = ceil(1000. / (SDL_GetTicks() - lastticks));
+	timeElapsed = SDL_GetTicks() - lastticks;
+	fps = ceil(1000. / timeElapsed);
 	lastticks = SDL_GetTicks();
+}
+
+double CFramerateManager::getElapsedSeconds() const
+{
+	 return timeElapsed / 1000.;
+}
+
+ui32 CFramerateManager::getFPS() const
+{
+	return fps;
 }

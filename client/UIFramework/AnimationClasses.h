@@ -45,8 +45,10 @@ public:
 	static const si8 NO_GROUP_LOADED = -2;
 	static const si8 ALL_GROUPS_LOADED = -1;
 
+	virtual IAnimation * clone() const =0;
 	virtual ~IAnimation() { };
 	
+	const GraphicsLocator & getLocator() const;
 	
 	std::map<size_t, size_t> getEntries() const;
 	si8 getLoadedGroup() const;
@@ -66,15 +68,19 @@ class CImageBasedAnimation : public IAnimation
 protected:
 	CImageBasedAnimation();
 	CImageBasedAnimation(const CImageBasedAnimation & other);
+	CImageBasedAnimation & operator=(const CImageBasedAnimation & other); 
 
 	void load(const CDefFile * defFile);
 	void load(const CDefFile * defFile, size_t group);
 
 public:
+	IAnimation * clone() const;
+
 	void draw(TImagePtr where, size_t frame, size_t group, int posX, int posY) const;
 
 	TAnimationPtr recolorToPlayer(int player) const;
 	void recolorToPlayer(int player);
+	void recolorToPlayerViaSelector(const GraphicsSelector & selector);
 
 	TAnimationPtr setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const;
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) { };

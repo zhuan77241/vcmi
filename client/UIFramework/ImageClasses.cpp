@@ -41,6 +41,11 @@ TMutableImagePtr IImage::createSDLSurface(SDL_Surface * surf)
 	return shared_ptr<IImage>(img);
 }
 
+const GraphicsLocator & IImage::getLocator() const
+{
+	return locator;
+}
+
 CDefFile::CDefFile(TMemoryStreamPtr Data): palette(NULL)
 {
 	//First 8 colors in def palette used for transparency
@@ -437,25 +442,19 @@ void CSDLImage::recolorToPlayer(int player)
 	}
 }
 
+void CSDLImage::recolorToPlayerViaSelector(const GraphicsSelector & selector)
+{
+	recolorToPlayer(selector.playerColor);
+}
+
 TImagePtr CSDLImage::recolorToPlayer(int player) const
 {
-	GraphicsLocator loc = locator;
-	loc.sel.playerColor = player;
-	TImagePtr img = CCS->resh->getImage(loc);
+	GraphicsLocator newLoc(locator);
+	newLoc.sel.playerColor = player;
 
-	if (img)
-		return img;
-	else
-	{
-		CSDLImage * sdl;
-		if (CCS->resh->isImageUnique(locator))
-			sdl = const_cast<CSDLImage *>(this);
-		else
-			sdl = new CSDLImage(*this);
-
-		sdl->recolorToPlayer(player);
-		return CCS->resh->setImage(sdl, loc, locator);
-	}
+	return CCS->resh->getTransformedImage(this, boost::bind(&CSDLImage::recolorToPlayerViaSelector, 
+		const_cast<CSDLImage *>(this), newLoc.sel), newLoc);
+	
 }
 
 void CSDLImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
@@ -926,25 +925,18 @@ void CCompImage::recolorToPlayer(int player)
 	}
 }
 
+void CCompImage::recolorToPlayerViaSelector(const GraphicsSelector & selector)
+{
+	recolorToPlayer(selector.playerColor);
+}
+
 TImagePtr CCompImage::recolorToPlayer(int player) const
 {
-	GraphicsLocator loc = locator;
-	loc.sel.playerColor = player;
-	TImagePtr img = CCS->resh->getImage(loc);
+	GraphicsLocator newLoc(locator);
+	newLoc.sel.playerColor = player;
 
-	if (img)
-		return img;
-	else
-	{
-		CCompImage * comp;
-		if (CCS->resh->isImageUnique(locator))
-			comp = const_cast<CCompImage *>(this);
-		else
-			comp = new CCompImage(*this);
-
-		comp->recolorToPlayer(player);
-		return CCS->resh->setImage(comp, loc, locator);
-	}
+	return CCS->resh->getTransformedImage(this, boost::bind(&CCompImage::recolorToPlayerViaSelector, 
+		const_cast<CCompImage *>(this), newLoc.sel), newLoc);
 }
 
 void CCompImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)

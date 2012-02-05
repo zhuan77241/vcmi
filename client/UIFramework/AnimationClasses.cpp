@@ -27,6 +27,11 @@ TMutableAnimationPtr IAnimation::createAnimation(const CDefFile * defFile, size_
 	return anim;
 }
 
+const GraphicsLocator & IAnimation::getLocator() const
+{
+	return locator;
+}
+
 std::map<size_t, size_t> IAnimation::getEntries() const
 {
 	return entries;
@@ -43,6 +48,11 @@ CImageBasedAnimation::CImageBasedAnimation() : IAnimation()
 
 CImageBasedAnimation::CImageBasedAnimation(const CImageBasedAnimation & other)
 {
+	*this = other;
+}
+
+CImageBasedAnimation & CImageBasedAnimation::operator=(const CImageBasedAnimation & other)
+{
 	loadedGroup = other.loadedGroup;
 
 	for(std::map<size_t, std::map<size_t, TMutableImagePtr> >::const_iterator i = other.images.begin();
@@ -58,6 +68,13 @@ CImageBasedAnimation::CImageBasedAnimation(const CImageBasedAnimation & other)
 			images[group][frame] = ptr;
 		}
 	}
+
+	return *this;
+}
+
+IAnimation * CImageBasedAnimation::clone() const
+{
+	return new CImageBasedAnimation(*this);
 }
 
 void CImageBasedAnimation::load(const CDefFile * defFile)
@@ -131,25 +148,18 @@ void CImageBasedAnimation::recolorToPlayer(int player)
 	}
 }
 
+void CImageBasedAnimation::recolorToPlayerViaSelector(const GraphicsSelector & selector)
+{
+	recolorToPlayer(selector.playerColor);
+}
+
 TAnimationPtr CImageBasedAnimation::recolorToPlayer(int player) const
 {
-	GraphicsLocator loc = locator;
-	loc.sel.playerColor = player;
-	TAnimationPtr loadedAnim = CCS->resh->getAnimation(loc);
+	GraphicsLocator newLoc(locator);
+	newLoc.sel.playerColor = player;
 
-	if (loadedAnim)
-		return loadedAnim;
-	else
-	{
-		CImageBasedAnimation * anim;
-		if (CCS->resh->isAnimationUnique(locator))
-			anim = const_cast<CImageBasedAnimation *>(this);
-		else
-			anim = new CImageBasedAnimation(*this);
-		
-		anim->recolorToPlayer(player);
-		return CCS->resh->setAnimation(anim, loc, locator);
-	}
+	return CCS->resh->getTransformedAnimation(this, boost::bind(&CImageBasedAnimation::recolorToPlayerViaSelector, 
+		const_cast<CImageBasedAnimation *>(this), newLoc.sel), newLoc);
 }
 
 TAnimationPtr CImageBasedAnimation::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const
@@ -216,8 +226,7 @@ void CAnimation::update(double elapsedTime)
 {
 	// TODO: get frames per second default setting, affects animation playing speed
 	// standing anim group shouldn't be faster, etc... -> setGroup should set framesSecond (?)
-	static const double framesSecond = 1 / 24.;
-
+	static const double framesSecond = 1 / 6.;
 
 	currentFrame = static_cast<size_t>(currentTime / framesSecond);
 	if (currentFrame >= frameCount)

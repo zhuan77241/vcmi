@@ -63,16 +63,6 @@ TImagePtr CResourceHandler::getImage(const ResourceIdentifier & identifier, bool
 	return getResource<const IImage, TImageMap>(images, identifier, GraphicsSelector(), fromBegin);
 }
 
-TImagePtr CResourceHandler::getImage(const GraphicsLocator & gloc)
-{
-	return getResource<const IImage, TImageMap>(images, gloc);
-}
-
-TImagePtr CResourceHandler::setImage(IImage * img, const GraphicsLocator & newLoc, const GraphicsLocator & oldLoc)
-{
-	return setResource<IImage, TImageMap>(img, images, newLoc, oldLoc);
-}
-
 template <typename IResource, typename Storage>
 shared_ptr<const IResource> CResourceHandler::setResource(IResource * res, Storage & storage, const GraphicsLocator & newLoc, const GraphicsLocator & oldLoc)
 {
@@ -170,16 +160,6 @@ void CResourceHandler::loadResource(const GraphicsLocator & gloc, TAnimationPtr 
 	animations[gloc] = wPtr;
 }
 
-TAnimationPtr CResourceHandler::getAnimation(const GraphicsLocator & gloc)
-{
-	return getResource<const IAnimation, TAnimationMap>(animations, gloc);
-}
-
-TAnimationPtr CResourceHandler::setAnimation(IAnimation * anim, const GraphicsLocator & newLoc, const GraphicsLocator & oldLoc)
-{
-	return setResource<IAnimation, TAnimationMap>(anim, animations, newLoc, oldLoc);
-}
-
 template <typename IResource, typename Storage>
 bool CResourceHandler::isResourceUnique(Storage & storage, const GraphicsLocator & locator)
 {
@@ -193,30 +173,44 @@ bool CResourceHandler::isResourceUnique(Storage & storage, const GraphicsLocator
 	return wptr.use_count() == 1;
 }
 
-bool CResourceHandler::isImageUnique(const GraphicsLocator & locator)
+template <typename BaseResource, typename Storage, typename Resource>
+shared_ptr<const BaseResource> CResourceHandler::getTransformedResource(Storage & storage, const Resource * resource, boost::function<void (GraphicsSelector sel)> func, const GraphicsLocator & newLoc)
 {
-	return isResourceUnique<const IImage, TImageMap>(images, locator);
+	shared_ptr<const BaseResource> ptr = getResource<const BaseResource, Storage>(storage, newLoc);
+
+	if (ptr)
+		return ptr;
+	else
+	{
+		BaseResource * res;
+		const GraphicsLocator & oldLoc = resource->getLocator();
+		if (isResourceUnique<const BaseResource, Storage>(storage, oldLoc))
+			res = const_cast<Resource *>(resource);
+		else
+			res = resource->clone();
+
+		func(newLoc.sel);
+		return setResource<BaseResource, Storage>(res, storage, newLoc, oldLoc);
+	}
 }
 
-bool CResourceHandler::isAnimationUnique(const GraphicsLocator & locator)
+template <typename Resource>
+TImagePtr CResourceHandler::getTransformedImage(const Resource * resource, boost::function<void (GraphicsSelector sel)> func, const GraphicsLocator & newLoc)
 {
-	return isResourceUnique<const IAnimation, TAnimationMap>(animations, locator);
+	return getTransformedResource<IImage, TImageMap, Resource>(images, resource, func, newLoc);
 }
 
-template TImagePtr CResourceHandler::getResource<const IImage, TImageMap>(TImageMap &, const GraphicsLocator &);
+template <typename Resource>
+TAnimationPtr CResourceHandler::getTransformedAnimation(const Resource * resource, boost::function<void (GraphicsSelector sel)> func, const GraphicsLocator & newLoc)
+{
+	return getTransformedResource<IAnimation, TAnimationMap, Resource>(animations, resource, func, newLoc);
+}
 
-template TAnimationPtr CResourceHandler::getResource<const IAnimation, TAnimationMap>(TAnimationMap &, const GraphicsLocator &);
+template TImagePtr CResourceHandler::getTransformedImage<CSDLImage>(const CSDLImage *, 
+	boost::function<void (GraphicsSelector sel)>, const GraphicsLocator &);
 
-template TImagePtr CResourceHandler::setResource<IImage, TImageMap>(IImage *, TImageMap &, const GraphicsLocator &, const GraphicsLocator &);
+template TImagePtr CResourceHandler::getTransformedImage<CCompImage>(const CCompImage *, 
+	boost::function<void (GraphicsSelector sel)>, const GraphicsLocator &);
 
-template TAnimationPtr CResourceHandler::setResource<IAnimation, TAnimationMap>(IAnimation *, TAnimationMap &, const GraphicsLocator &, const GraphicsLocator &);
-
-template TImagePtr CResourceHandler::getResource<const IImage, TImageMap>(TImageMap &, 
-	const ResourceIdentifier &, const GraphicsSelector &, bool);
-
-template TAnimationPtr CResourceHandler::getResource<const IAnimation, TAnimationMap>(TAnimationMap &, 
-	const ResourceIdentifier &, const GraphicsSelector &, bool);
-
-template bool CResourceHandler::isResourceUnique<const IImage, TImageMap>(TImageMap &, const GraphicsLocator &);
-
-template bool CResourceHandler::isResourceUnique<const IAnimation, TAnimationMap>(TAnimationMap &, const GraphicsLocator &);
+template TAnimationPtr CResourceHandler::getTransformedAnimation<CImageBasedAnimation>(const CImageBasedAnimation *, 
+	boost::function<void (GraphicsSelector sel)>, const GraphicsLocator &);

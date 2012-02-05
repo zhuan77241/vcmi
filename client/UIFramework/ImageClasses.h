@@ -47,6 +47,8 @@ protected:
 public:
 	virtual ~IImage() { };
 	virtual IImage * clone() const =0;
+	
+	const GraphicsLocator & getLocator() const;
 
 	// draws image on surface "where" at position
 	virtual void draw(TImagePtr where, int posX = 0, int posY = 0, Rect * src = NULL, ui8 alpha = 255) const =0;
@@ -141,6 +143,7 @@ public:
 
 	TImagePtr recolorToPlayer(int player) const;
 	void recolorToPlayer(int player);
+	void recolorToPlayerViaSelector(const GraphicsSelector & selector);
 
 	TImagePtr setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const;
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha);
@@ -237,6 +240,7 @@ public:
 
 	TImagePtr recolorToPlayer(int player) const;
 	void recolorToPlayer(int player);
+	void recolorToPlayerViaSelector(const GraphicsSelector & selector);
 
 	TImagePtr setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const;
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha);

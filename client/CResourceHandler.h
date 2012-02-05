@@ -36,18 +36,18 @@ class CResourceHandler
 	template <typename IResource, typename Storage>
 	shared_ptr<const IResource> setResource(IResource * res, Storage & storage, const GraphicsLocator & newLoc, const GraphicsLocator & oldLoc);
 
-	TImagePtr getImage(const GraphicsLocator & gloc);
-	TImagePtr setImage(IImage * img, const GraphicsLocator & newLoc, const GraphicsLocator & oldLoc);
+	template <typename BaseResource, typename Storage, typename Resource>
+	shared_ptr<const BaseResource> getTransformedResource(Storage & storage, const Resource * resource, 
+		boost::function<void (GraphicsSelector sel)> func, const GraphicsLocator & newLoc);
 
-	TAnimationPtr getAnimation(const GraphicsLocator & gloc);
-	TAnimationPtr setAnimation(IAnimation * anim, const GraphicsLocator & newLoc, const GraphicsLocator & oldLoc);
+	template <typename Resource>
+	TImagePtr getTransformedImage(const Resource * resource, boost::function<void (GraphicsSelector sel)> func, const GraphicsLocator & newLoc);
+
+	template <typename Resource>
+	TAnimationPtr getTransformedAnimation(const Resource * resource, boost::function<void (GraphicsSelector sel)> func, const GraphicsLocator & newLoc);
 
 	template <typename IResource, typename Storage>
 	bool isResourceUnique(Storage & storage, const GraphicsLocator & locator);
-
-	// Checks if the image used is unique. Deletes the weak ptr 
-	bool isImageUnique(const GraphicsLocator & locator);
-	bool isAnimationUnique(const GraphicsLocator & locator);
 public:
 
 	// Loads an image.

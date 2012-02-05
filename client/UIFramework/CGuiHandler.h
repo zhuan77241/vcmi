@@ -23,15 +23,17 @@ class IShowable;
 // A fps manager which holds game updates at a constant rate
 class CFramerateManager
 {
-	ui32 lastticks, timeElapsed, rateticks, rate;
+	ui32 lastticks, rateticks, rate, timeElapsed;
+	
+	// the actual fps value
+	ui32 fps;
 
 public:
-	int fps; // the actual fps value
-
 	CFramerateManager(ui32 Rate); // initializes the manager with a given fps rate
 	void init(); // needs to be called directly before the main game loop to reset the internal timer
 	void framerateDelay(); // needs to be called every game update cycle
-	double getElapsedSeconds() const { return timeElapsed / 1000.; }
+	double getElapsedSeconds() const;
+	ui32 getFPS() const;
 };
 
 // Handles GUI logic and drawing
