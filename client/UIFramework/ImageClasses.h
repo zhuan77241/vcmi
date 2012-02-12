@@ -37,17 +37,13 @@ class IImage : public IImageTasks
 protected:
 	GraphicsLocator locator;
 
-	// Loads an image from memory.
-	// Params: imageType		E.g.: PCX, TGA, BMP, DEF
-	virtual void load(TMemoryStreamPtr data, const std::string & imageType) =0;
-
-	// Loads an sprite image from DEF file.
-	virtual void load(const CDefFile * defFile, size_t frame, size_t group) =0;
-
 public:
+	IImage(const GraphicsLocator & Locator = GraphicsLocator());
 	virtual ~IImage() { };
 	virtual IImage * clone() const =0;
 	
+	// Gets the locator object which stores the filesystem location, 
+	// loaded groups and transformations of the animation.
 	const GraphicsLocator & getLocator() const;
 
 	// draws image on surface "where" at position
@@ -55,12 +51,6 @@ public:
 
 	virtual int width() const=0;
 	virtual int height() const=0;
-
-	static TMutableImagePtr createImageFromFile(TMemoryStreamPtr data, const std::string & imageType);
-	static TMutableImagePtr createSpriteFromDEF(const CDefFile * defFile, size_t frame, size_t group);
-	static TMutableImagePtr createSDLSurface(SDL_Surface * surf);
-
-	friend class CResourceHandler;
 };
 
 /// Class for def loading, methods are based on CDefHandler
@@ -84,32 +74,32 @@ public:
 	std::map<size_t, size_t> getEntries() const;
 };
 
-class CSDLImageLoader
-{
-	CSDLImage * image;
-	ui8 * lineStart;
-	ui8 * position;
-
-public:
-	//load size raw pixels from data
-	void load(size_t size, const ui8 * data);
-	
-	//set size pixels to color
-	void load(size_t size, ui8 color = 0);
-	void endLine();
-	
-	//init image with these sizes and palette
-	void init(Point spriteSize, Point margins, Point fullSize, SDL_Color * pal);
-
-	CSDLImageLoader(CSDLImage * Img);
-	~CSDLImageLoader();
-};
-
 /*
  * Wrapper around SDL_Surface
  */
 class CSDLImage : public IImage
 {
+	class CSDLImageLoader
+	{
+		CSDLImage * image;
+		ui8 * lineStart;
+		ui8 * position;
+
+	public:
+		//load size raw pixels from data
+		void load(size_t size, const ui8 * data);
+
+		//set size pixels to color
+		void load(size_t size, ui8 color = 0);
+		void endLine();
+
+		//init image with these sizes and palette
+		void init(Point spriteSize, Point margins, Point fullSize, SDL_Color * pal);
+
+		CSDLImageLoader(CSDLImage * Img);
+		~CSDLImageLoader();
+	};
+	
 	//Surface without empty borders
 	SDL_Surface * surf;
 	bool freeSurf;
@@ -120,17 +110,19 @@ class CSDLImage : public IImage
 	//total size including borders
 	Point fullSize;
 
-protected:
-	CSDLImage();
+public:
+	// Loads an image from memory.
+	// Params: imageType		E.g.: PCX, TGA, BMP, DEF
+	CSDLImage(TMemoryStreamPtr data, const std::string & imageType, const GraphicsLocator & locator = GraphicsLocator());
+
+	// Loads an sprite image from DEF file.
+	CSDLImage(const CDefFile * defFile, size_t frame, size_t group, const GraphicsLocator & locator = GraphicsLocator());
+
+	// Constructs an SDLImage object from a existing SDL_Surface
+	CSDLImage(SDL_Surface * surf, bool freeSurf = true);
+
 	CSDLImage(const CSDLImage & cpy);
 	CSDLImage & operator=(const CSDLImage & cpy);
-
-	//Load image by memory stream
-	void load(TMemoryStreamPtr data, const std::string & imageType);
-	void load(const CDefFile * defFile, size_t frame, size_t group);
-	void load(SDL_Surface * surf, bool freeSurf = true);
-
-public:
 	~CSDLImage();
 
 	IImage * clone() const;
@@ -150,35 +142,6 @@ public:
 
 	TImagePtr rotate(EImageRotation::EImageRotation rotation) const;
 	void rotate(EImageRotation::EImageRotation rotation);
-
-	friend class CSDLImageLoader;
-	friend class IImage;
-};
-
-class CCompImageLoader
-{
-	CCompImage * image;
-	ui8 * position;
-	ui8 * entry;
-	ui32 currentLine;
-
-	ui8 typeOf(ui8 color);
-	void newEntry(ui8 color, size_t size);
-	void newEntry(const ui8 * & data, size_t size);
-
-public:
-	//load size raw pixels from data
-	void load(size_t size, const ui8 * data);
-	
-	//set size pixels to color
-	void load(size_t size, ui8 color = 0);
-	void endLine();
-	
-	//init image with these sizes and palette
-	void init(Point spriteSize, Point margins, Point fullSize, SDL_Color * pal);
-
-	CCompImageLoader(CCompImage * img);
-	~CCompImageLoader();
 };
 
 /*
@@ -195,6 +158,32 @@ public:
  */
 class CCompImage : public IImage
 {
+	class CCompImageLoader
+	{
+		CCompImage * image;
+		ui8 * position;
+		ui8 * entry;
+		ui32 currentLine;
+
+		ui8 typeOf(ui8 color);
+		void newEntry(ui8 color, size_t size);
+		void newEntry(const ui8 * & data, size_t size);
+
+	public:
+		//load size raw pixels from data
+		void load(size_t size, const ui8 * data);
+
+		//set size pixels to color
+		void load(size_t size, ui8 color = 0);
+		void endLine();
+
+		//init image with these sizes and palette
+		void init(Point spriteSize, Point margins, Point fullSize, SDL_Color * pal);
+
+		CCompImageLoader(CCompImage * img);
+		~CCompImageLoader();
+	};
+
 	//x,y - margins, w,h - sprite size
 	Rect sprite;
 
@@ -218,18 +207,12 @@ class CCompImage : public IImage
 	void blitBlock(ui8 type, ui8 size, ui8 * & data, ui8 * & dest, ui8 alpha) const;
 	void blitBlockWithBpp(ui8 bpp, ui8 type, ui8 size, ui8 * & data, ui8 * & dest, ui8 alpha, bool rotated) const;
 
-protected:
-	CCompImage();
+public:
+	// Loads an sprite image from DEF file.
+	CCompImage(const CDefFile * defFile, size_t frame, size_t group, const GraphicsLocator & locator = GraphicsLocator());
+
 	CCompImage(const CCompImage & cpy);
 	CCompImage & operator=(const CCompImage & cpy);
-
-	// TODO: Load image from file(SDL_Surface)
-	void load(TMemoryStreamPtr data, const std::string & imageType);
-
-	//Load image from def file
-	void load(const CDefFile * defFile, size_t frame, size_t group);
-
-public:
 	~CCompImage();
 
 	IImage * clone() const;
@@ -247,7 +230,4 @@ public:
 
 	TImagePtr rotate(EImageRotation::EImageRotation rotation) const;
 	void rotate(EImageRotation::EImageRotation rotation);
-
-	friend class CCompImageLoader;
-	friend class IImage;
 };

@@ -32,32 +32,27 @@ class IAnimation : public IAnimationTasks
 {
 protected:
 	std::map<size_t, size_t> entries;
+	
+	// Stores the filesystem location, loaded groups and transformations of the animation.
 	GraphicsLocator locator;
 
-	// -1 = all groups loaded, -2 = not initialized
-	si8 loadedGroup;
-
-	IAnimation() : loadedGroup(-2) { };
-	virtual void load(const CDefFile * defFile) =0;
-	virtual void load(const CDefFile * defFile, size_t group) =0;
-
 public:
-	static const si8 NO_GROUP_LOADED = -2;
-	static const si8 ALL_GROUPS_LOADED = -1;
+	IAnimation(const GraphicsLocator & Locator = GraphicsLocator());
 
-	virtual IAnimation * clone() const =0;
 	virtual ~IAnimation() { };
+	virtual IAnimation * clone() const =0;
 	
+	// Gets the locator object which stores the filesystem location, 
+	// loaded groups and transformations of the animation.
 	const GraphicsLocator & getLocator() const;
 	
+	// Gets the information how many groups/frames exist
 	std::map<size_t, size_t> getEntries() const;
+
+	// Gets the index of the loaded group. -1 if all groups are loaded.
 	si8 getLoadedGroup() const;
 
 	virtual void draw(TImagePtr where, size_t frame, size_t group, int posX, int posY) const =0;
-
-	static TMutableAnimationPtr createAnimation(const CDefFile * defFile, size_t group = -1);
-
-	friend class CResourceHandler;
 };
 
 class CImageBasedAnimation : public IAnimation
@@ -65,15 +60,13 @@ class CImageBasedAnimation : public IAnimation
 	// images[group][frame], store objects with loaded images
 	std::map<size_t, std::map<size_t, TMutableImagePtr> > images;
 
-protected:
-	CImageBasedAnimation();
+public:
+	// Loads frames of the specified group of an animation. Assign -1 to the second parameter 'group' to load all groups.
+	CImageBasedAnimation(const CDefFile * defFile, size_t group = -1, const GraphicsLocator & Locator = GraphicsLocator());
+	
 	CImageBasedAnimation(const CImageBasedAnimation & other);
 	CImageBasedAnimation & operator=(const CImageBasedAnimation & other); 
 
-	void load(const CDefFile * defFile);
-	void load(const CDefFile * defFile, size_t group);
-
-public:
 	IAnimation * clone() const;
 
 	void draw(TImagePtr where, size_t frame, size_t group, int posX, int posY) const;
@@ -87,8 +80,6 @@ public:
 
 	TAnimationPtr rotate(EImageRotation::EImageRotation rotation) const;
 	void rotate(EImageRotation::EImageRotation rotation) { };
-
-	friend class IAnimation;
 };
 
 class CAnimation
@@ -101,7 +92,7 @@ class CAnimation
 public:
 	CAnimation(TAnimationPtr animation);
 	CAnimation(const ResourceIdentifier & identifier);
-	CAnimation(const ResourceIdentifier & identifier, size_t group);
+	CAnimation(const ResourceIdentifier & identifier, size_t group, bool repeat = false);
 
 	void setGroup(size_t group, bool repeat = false);
 

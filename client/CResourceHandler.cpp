@@ -8,7 +8,7 @@
 
 
 template <typename IResource, typename Storage>
-shared_ptr<IResource> CResourceHandler::getResource(Storage & storage, const ResourceIdentifier & identifier, const GraphicsSelector & sel, bool fromBegin /*= false*/)
+shared_ptr<IResource> CResourceHandler::getResource(Storage & storage, const ResourceIdentifier & identifier, const GraphicsSelector & sel, bool fromBegin /*= false*/, bool unshared /*= false*/)
 {
 	TResourcesMap resources = CGI->filesystemh->getResourcesMap();
 	shared_ptr<IResource> rslt;
@@ -36,7 +36,7 @@ shared_ptr<IResource> CResourceHandler::getResource(Storage & storage, const Res
 	if(storage.find(gloc) == storage.end())
 	{
 		// load it
-		loadResource(gloc, rslt);
+		loadResource(gloc, rslt, unshared);
 		return rslt;
 	}
 
@@ -44,7 +44,7 @@ shared_ptr<IResource> CResourceHandler::getResource(Storage & storage, const Res
 	if(ptr.expired())
 	{
 		// load it
-		loadResource(gloc, rslt);
+		loadResource(gloc, rslt, unshared);
 		return rslt;
 	}
 
@@ -61,6 +61,13 @@ TImagePtr CResourceHandler::getImage(const ResourceIdentifier & identifier, size
 TImagePtr CResourceHandler::getImage(const ResourceIdentifier & identifier, bool fromBegin /*= false*/)
 {
 	return getResource<const IImage, TImageMap>(images, identifier, GraphicsSelector(), fromBegin);
+}
+
+shared_ptr<CSDLImage> CResourceHandler::getUnsharedImage(const ResourceIdentifier & identifier, bool fromBegin /*= false*/)
+{
+	TImagePtr ptr = getResource<const IImage, TImageMap>(images, identifier, GraphicsSelector(), fromBegin, true);
+	shared_ptr<IImage> img = boost::const_pointer_cast<IImage>(ptr);
+	return boost::dynamic_pointer_cast<CSDLImage>(img);
 }
 
 template <typename IResource, typename Storage>
@@ -83,7 +90,6 @@ shared_ptr<const IResource> CResourceHandler::setResource(IResource * res, Stora
 		sptr = shared_ptr<const IResource>(res);
 	}
 
-	const_cast<IResource *>(sptr.get())->locator = newLoc;
 	wptr = weak_ptr<const IResource>(sptr);
 	storage[newLoc] = wptr;
 	return sptr;
@@ -102,7 +108,26 @@ shared_ptr<IResource> CResourceHandler::getResource(Storage & storage, const Gra
 	return res;
 }
 
-void CResourceHandler::loadResource(const GraphicsLocator & gloc, TImagePtr & img)
+TMutableImagePtr CResourceHandler::createImageFromFile(TMemoryStreamPtr data, const std::string & imageType, const GraphicsLocator & locator /*=GraphicsLocator()*/)
+{
+	// always use SDL when loading image from file 
+	return shared_ptr<IImage>(new CSDLImage(data, imageType, locator));
+}
+
+TMutableImagePtr CResourceHandler::createSpriteFromDEF(const CDefFile * defFile, size_t frame, size_t group, const GraphicsLocator & locator /*=GraphicsLocator()*/)
+{
+	// always use CCompImage when loading from DEF file
+	// we keep the possibility to load via SDL image
+	static const bool useComp = true;
+
+	if (useComp)
+		return shared_ptr<IImage>(new CCompImage(defFile, frame, group, locator));
+
+	else
+		return shared_ptr<IImage>(new CSDLImage(defFile, frame, group, locator));
+}
+
+void CResourceHandler::loadResource(const GraphicsLocator & gloc, TImagePtr & img, bool unshared /*= false*/)
 {
 	ResourceLocator resLoc(gloc.loader, gloc.resourceName);
 	TMemoryStreamPtr data = CGI->filesystemh->getResource(resLoc);
@@ -110,22 +135,21 @@ void CResourceHandler::loadResource(const GraphicsLocator & gloc, TImagePtr & im
 	// get file info of the locator
 	CFileInfo locInfo(gloc.resourceName);
 
-	TMutableImagePtr mutableImg;
 	if(boost::iequals(locInfo.getExtension(), ".DEF"))
 	{
 		CDefFile defFile(data);
-		mutableImg = IImage::createSpriteFromDEF(&defFile, gloc.sel.frame, gloc.sel.group);
+		img = createSpriteFromDEF(&defFile, gloc.sel.frame, gloc.sel.group, gloc);
 	}
 	else
 	{
-		mutableImg = IImage::createImageFromFile(data, locInfo.getExtension());
+		img = createImageFromFile(data, locInfo.getExtension(), gloc);
 	}
 
-	mutableImg->locator = gloc;
-	img = mutableImg;
-
-	weak_ptr<const IImage> wPtr(img);
-	images[gloc] = wPtr;
+	if (!unshared)
+	{
+		weak_ptr<const IImage> wPtr(img);
+		images[gloc] = wPtr;
+	}
 }
 
 TAnimationPtr CResourceHandler::getAnimation(const ResourceIdentifier & identifier, bool fromBegin /*= false*/)
@@ -138,7 +162,24 @@ TAnimationPtr CResourceHandler::getAnimation(const ResourceIdentifier & identifi
 	return getResource<const IAnimation, TAnimationMap>(animations, identifier, GraphicsSelector(group), fromBegin);
 }
 
-void CResourceHandler::loadResource(const GraphicsLocator & gloc, TAnimationPtr & anim)
+TMutableAnimationPtr CResourceHandler::createAnimation(const CDefFile * defFile, size_t group /*= -1*/, const GraphicsLocator & locator /*= GraphicsLocator()*/)
+{
+	// use always image based animations for the moment;
+	static const bool useImageBased = true;
+
+	if (useImageBased)
+	{
+		return shared_ptr<IAnimation>(new CImageBasedAnimation(defFile, group, locator));
+	}
+	else
+	{
+		// TODO: Direct based anim
+		TMutableAnimationPtr ptr;
+		return ptr;
+	}
+}
+
+void CResourceHandler::loadResource(const GraphicsLocator & gloc, TAnimationPtr & anim, bool unshared /*= false*/)
 {
 	ResourceLocator resLoc(gloc.loader, gloc.resourceName);
 	TMemoryStreamPtr data = CGI->filesystemh->getResource(resLoc);
@@ -146,18 +187,17 @@ void CResourceHandler::loadResource(const GraphicsLocator & gloc, TAnimationPtr 
 	// get file info of the locator
 	CFileInfo locInfo(gloc.resourceName);
 
-	TMutableAnimationPtr mutableAnim;
 	if(boost::iequals(locInfo.getExtension(), ".DEF"))
 	{
 		CDefFile defFile(data);
-		mutableAnim = IAnimation::createAnimation(&defFile, gloc.sel.group);
+		anim = createAnimation(&defFile, gloc.sel.group, gloc);
 	}
 
-	mutableAnim->locator = gloc;
-	anim = mutableAnim;
-
-	weak_ptr<const IAnimation> wPtr(anim);
-	animations[gloc] = wPtr;
+	if (!unshared)
+	{
+		weak_ptr<const IAnimation> wPtr(anim);
+		animations[gloc] = wPtr;
+	}
 }
 
 template <typename IResource, typename Storage>

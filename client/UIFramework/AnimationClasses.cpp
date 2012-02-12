@@ -5,26 +5,8 @@
 #include "../CGameInfo.h"
 #include "../CResourceHandler.h"
 
-TMutableAnimationPtr IAnimation::createAnimation(const CDefFile * defFile, size_t group)
+IAnimation::IAnimation(const GraphicsLocator & Locator /*= GraphicsLocator()*/) : locator(Locator)
 {
-	static const bool useImageBased = true;
-
-	TMutableAnimationPtr anim;
-	if (useImageBased)
-	{
-		anim = shared_ptr<IAnimation>(new CImageBasedAnimation);
-	}
-	else
-	{
-		// TODO: Direct based anim
-	}
-
-	if (group == -1)
-		anim->load(defFile);
-	else
-		anim->load(defFile, group);
-
-	return anim;
 }
 
 const GraphicsLocator & IAnimation::getLocator() const
@@ -39,11 +21,31 @@ std::map<size_t, size_t> IAnimation::getEntries() const
 
 si8 IAnimation::getLoadedGroup() const
 {
-	return loadedGroup;
+	return locator.sel.group;
 }
 
-CImageBasedAnimation::CImageBasedAnimation() : IAnimation()
+CImageBasedAnimation::CImageBasedAnimation(const CDefFile * defFile, size_t group /*= -1*/, const GraphicsLocator & Locator /*= GraphicsLocator()*/) : IAnimation(Locator)
 {
+	images.clear();
+	entries = defFile->getEntries();
+	locator.sel.group = group;
+	
+	if (group == -1)
+	{
+		for(std::map<size_t, size_t>::iterator group = entries.begin(); group != entries.end(); ++group)
+			for(size_t frame = 0; frame < group->second; frame++)
+				images[group->first][frame] = CCS->resh->createSpriteFromDEF(defFile, frame, group->first);
+	}
+	else
+	{
+		if(vstd::contains(entries, group))
+		{
+			locator.sel.group = group;
+
+			for(size_t frame = 0; frame < entries[group]; frame++)
+				images[group][frame] = CCS->resh->createSpriteFromDEF(defFile, frame, group);
+		}
+	}
 }
 
 CImageBasedAnimation::CImageBasedAnimation(const CImageBasedAnimation & other)
@@ -53,8 +55,6 @@ CImageBasedAnimation::CImageBasedAnimation(const CImageBasedAnimation & other)
 
 CImageBasedAnimation & CImageBasedAnimation::operator=(const CImageBasedAnimation & other)
 {
-	loadedGroup = other.loadedGroup;
-
 	for(std::map<size_t, std::map<size_t, TMutableImagePtr> >::const_iterator i = other.images.begin();
 		i != other.images.end(); ++i)
 	{
@@ -77,35 +77,6 @@ IAnimation * CImageBasedAnimation::clone() const
 	return new CImageBasedAnimation(*this);
 }
 
-void CImageBasedAnimation::load(const CDefFile * defFile)
-{
-	assert(loadedGroup == NO_GROUP_LOADED);
-
-	images.clear();
-	entries = defFile->getEntries();
-	loadedGroup = -1;
-
-	for(std::map<size_t, size_t>::iterator group = entries.begin(); group != entries.end(); ++group)
-		for(size_t frame = 0; frame < group->second; frame++)
-			images[group->first][frame] = IImage::createSpriteFromDEF(defFile, frame, group->first);
-}
-
-void CImageBasedAnimation::load(const CDefFile * defFile, size_t group)
-{
-	assert(loadedGroup == NO_GROUP_LOADED);
-
-	images.clear();
-	entries = defFile->getEntries();
-
-	if(vstd::contains(entries, group))
-	{
-		loadedGroup = group;
-
-		for(size_t frame = 0; frame < entries[group]; frame++)
-			images[group][frame] = IImage::createSpriteFromDEF(defFile, frame, group);
-	}
-}
-
 void CImageBasedAnimation::draw(TImagePtr where, size_t frame, size_t group, int posX, int posY) const
 {
 	std::map<size_t, std::map<size_t, TMutableImagePtr> >::const_iterator it = images.find(group);
@@ -124,7 +95,7 @@ void CImageBasedAnimation::draw(TImagePtr where, size_t frame, size_t group, int
 void CImageBasedAnimation::recolorToPlayer(int player)
 {
 	// recolor all groups
-	if(loadedGroup == -1)
+	if(locator.sel.group == -1)
 	{
 		for(size_t group = 0; group < images.size(); ++group)
 		{
@@ -139,9 +110,9 @@ void CImageBasedAnimation::recolorToPlayer(int player)
 	else
 	{
 		// recolor loaded group
-		for(size_t frame = 0; frame < images[loadedGroup].size(); ++frame)
+		for(size_t frame = 0; frame < images[locator.sel.group].size(); ++frame)
 		{
-			TMutableImagePtr img =  images[loadedGroup][frame];
+			TMutableImagePtr img =  images[locator.sel.group][frame];
 			IGraphicsTasks * ptr = dynamic_cast<IGraphicsTasks *>(img.get());
 			ptr->recolorToPlayer(player);
 		}
@@ -188,10 +159,10 @@ CAnimation::CAnimation(const ResourceIdentifier & identifier) : currentGroup(0),
 	setGroup(0);
 }
 
-CAnimation::CAnimation(const ResourceIdentifier & identifier, size_t group) : currentGroup(group), currentFrame(0)
+CAnimation::CAnimation(const ResourceIdentifier & identifier, size_t group, bool repeat /*= false*/) : currentGroup(group), currentFrame(0)
 {
 	anim = CCS->resh->getAnimation(identifier, group);
-	setGroup(group);
+	setGroup(group, repeat);
 }
 
 void CAnimation::setGroup(size_t group, bool repeat /*= false*/)
@@ -200,7 +171,7 @@ void CAnimation::setGroup(size_t group, bool repeat /*= false*/)
 	std::map<size_t, size_t> entries = anim->getEntries();
 
 	// check if the group is loaded
-	if (anim->getLoadedGroup() != group && anim->getLoadedGroup() != IAnimation::ALL_GROUPS_LOADED)
+	if (anim->getLoadedGroup() != group && anim->getLoadedGroup() != -1)
 	{
 		// TODO: output resource name, resource source
 		tlog2 << "Group Nr. " << group << " hasn't been loaded." << std::endl;
