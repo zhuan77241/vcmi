@@ -1298,7 +1298,7 @@ void CSDL_Ext::fillRect( SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color )
 	SDL_FillRect(dst, &newRect, color);
 }
 
-SDL_Surface * CSDL_Ext::convertPCXToSDL(TMemoryStreamPtr data)
+SDL_Surface * CSDL_Ext::convertPCXToSDL(const CMemoryStream * data)
 {
 	enum EPCXFormat
 	{
@@ -1378,7 +1378,7 @@ SDL_Surface * CSDL_Ext::convertPCXToSDL(TMemoryStreamPtr data)
 	return rslt;
 }
 
-SDL_Surface * CSDL_Ext::loadImage(TMemoryStreamPtr data, const std::string & imageType)
+SDL_Surface * CSDL_Ext::loadImage(const CMemoryStream * data, const std::string & imageType)
 {
 	SDL_Surface * rslt = NULL;
 	if(imageType == ".PCX")

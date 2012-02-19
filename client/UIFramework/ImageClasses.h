@@ -14,43 +14,26 @@
  *
  */
 
-/*
- * Interface for VCMI related image tasks like player coloring
- */
-class IImageTasks : public IGraphicsTasks
-{
-public:
-	// Change palette to specific player.
-	virtual TImagePtr recolorToPlayer(int player) const =0;
-
-	// Sets/Unsets the yellow or blue glow animation effect.
-	virtual TImagePtr setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const =0;
-
-	virtual TImagePtr rotate(EImageRotation::EImageRotation rotation) const =0;
-};
 
 /*
  * Interface for images
  */
-class IImage : public IImageTasks
+class IImage : public ITransformational
 {
 protected:
-	GraphicsLocator locator;
+	Point pos;
 
 public:
-	IImage(const GraphicsLocator & Locator = GraphicsLocator());
 	virtual ~IImage() { };
 	virtual IImage * clone() const =0;
-	
-	// Gets the locator object which stores the filesystem location, 
-	// loaded groups and transformations of the animation.
-	const GraphicsLocator & getLocator() const;
 
-	// draws image on surface "where" at position
-	virtual void draw(TImagePtr where, int posX = 0, int posY = 0, Rect * src = NULL, ui8 alpha = 255) const =0;
+	virtual void draw() const =0;
 
-	virtual int width() const=0;
-	virtual int height() const=0;
+	virtual int getWidth() const=0;
+	virtual int getHeight() const=0;
+
+	void setPosition(const Point & pos);
+	Point getPosition() const;
 };
 
 /// Class for def loading, methods are based on CDefHandler
@@ -60,11 +43,11 @@ class CDefFile
 	//offset[group][frame] - offset of frame data in file
 	std::map<size_t, std::vector <size_t> > offset;
 
-	TMemoryStreamPtr data;
+	const CMemoryStream * data;
 	SDL_Color * palette;
 
 public:
-	CDefFile(TMemoryStreamPtr Data);
+	CDefFile(const CMemoryStream * Data);
 	~CDefFile();
 
 	//load frame as SDL_Surface
@@ -113,10 +96,10 @@ class CSDLImage : public IImage
 public:
 	// Loads an image from memory.
 	// Params: imageType		E.g.: PCX, TGA, BMP, DEF
-	CSDLImage(TMemoryStreamPtr data, const std::string & imageType, const GraphicsLocator & locator = GraphicsLocator());
+	CSDLImage(const CMemoryStream * data, const std::string & imageType);
 
 	// Loads an sprite image from DEF file.
-	CSDLImage(const CDefFile * defFile, size_t frame, size_t group, const GraphicsLocator & locator = GraphicsLocator());
+	CSDLImage(const CDefFile * defFile, size_t frame, size_t group);
 
 	// Constructs an SDLImage object from a existing SDL_Surface
 	CSDLImage(SDL_Surface * surf, bool freeSurf = true);
@@ -126,22 +109,16 @@ public:
 	~CSDLImage();
 
 	IImage * clone() const;
-	void draw(TImagePtr where, int posX = 0, int posY = 0, Rect * src = NULL,  ui8 alpha = 255) const;
-	int width() const;
-	int height() const;
+	void draw() const;
+	int getWidth() const;
+	int getHeight() const;
 	
-	// Get raw pointer to SDL surface. It's only needed for SDL related tasks.
-	SDL_Surface * getSDL_Surface() const;
+	// Get raw pointer to SDL surface.
+	SDL_Surface * getRawSurface() const;
 
-	TImagePtr recolorToPlayer(int player) const;
 	void recolorToPlayer(int player);
-	void recolorToPlayerViaSelector(const GraphicsSelector & selector);
-
-	TImagePtr setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const;
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha);
-
-	TImagePtr rotate(EImageRotation::EImageRotation rotation) const;
-	void rotate(EImageRotation::EImageRotation rotation);
+	void setAlpha(ui8 alpha);
 };
 
 /*
@@ -202,6 +179,8 @@ class CCompImage : public IImage
 	//palette
 	SDL_Color * palette;
 
+	ui8 alpha;
+
 	//Used internally to blit one block of data
 	template<int bpp, int dir>
 	void blitBlock(ui8 type, ui8 size, ui8 * & data, ui8 * & dest, ui8 alpha) const;
@@ -209,7 +188,7 @@ class CCompImage : public IImage
 
 public:
 	// Loads an sprite image from DEF file.
-	CCompImage(const CDefFile * defFile, size_t frame, size_t group, const GraphicsLocator & locator = GraphicsLocator());
+	CCompImage(const CDefFile * defFile, size_t frame, size_t group);
 
 	CCompImage(const CCompImage & cpy);
 	CCompImage & operator=(const CCompImage & cpy);
@@ -217,17 +196,11 @@ public:
 
 	IImage * clone() const;
 
-	void draw(TImagePtr where, int posX = 0, int posY = 0, Rect * src = NULL, ui8 alpha = 255) const;
-	int width() const;
-	int height() const;
+	void draw() const;
+	int getWidth() const;
+	int getHeight() const;
 
-	TImagePtr recolorToPlayer(int player) const;
 	void recolorToPlayer(int player);
-	void recolorToPlayerViaSelector(const GraphicsSelector & selector);
-
-	TImagePtr setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const;
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha);
-
-	TImagePtr rotate(EImageRotation::EImageRotation rotation) const;
-	void rotate(EImageRotation::EImageRotation rotation);
+	void setAlpha(ui8 alpha);
 };

@@ -12,16 +12,12 @@
  *
  */
 
-
 class IImage;
-class IImageTasks;
+class ITransformational;
 class CSDLImage;
 class CCompImage;
 struct SDL_Surface;
 class CDefFile;
-
-typedef shared_ptr<const IImage> TImagePtr;
-typedef shared_ptr<IImage> TMutableImagePtr;
 
 /*
  * Enumeration for the glow effect
@@ -98,7 +94,7 @@ struct GraphicsLocator : public ResourceLocator
 /*
  * Interface for VCMI related graphics tasks like player coloring
  */
-class IGraphicsTasks
+class ITransformational
 {
 public:
 	// Change palette to specific player.
@@ -107,5 +103,5 @@ public:
 	// Sets/Unsets the yellow or blue glow animation effect.
 	virtual void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) =0;
 
-	virtual void rotate(EImageRotation::EImageRotation rotation) =0;
+	virtual void setAlpha(ui8 alpha) =0;
 };

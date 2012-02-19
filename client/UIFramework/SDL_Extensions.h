@@ -107,8 +107,13 @@ inline SDL_Rect genRect(const int & hh, const int & ww, const int & xx, const in
 	return ret;
 }
 
+
 //TODO: inlining will work only if functions are defined in each compilation unit (like placing them in headers)
 //however here PutColor defined in SDL_Extensions.cpp, but used in CAnimation.cpp and CCreatureAnimation.cpp
+
+// Suppress boost warning for MSVC: no definition for inline function
+# pragma warning(disable: 4506)
+
 template<int bpp, int incrementPtr>
 struct ColorPutter
 {
@@ -195,10 +200,10 @@ namespace CSDL_Ext
 	void applyEffect(SDL_Surface * surf, const SDL_Rect * rect, int mode); //mode: 0 - sepia, 1 - grayscale
 
 	// Converts a H3 PCX image to a SDL_Surface
-	SDL_Surface * convertPCXToSDL(TMemoryStreamPtr data);
+	SDL_Surface * convertPCXToSDL(const CMemoryStream * data);
 
 	// Loads an image from memory.
 	// Params: imageType		E.g.: PCX, TGA, BMP
 	// Throws CImageLoadingError if couldn't be loaded.
-	SDL_Surface * loadImage(TMemoryStreamPtr data, const std::string & imageType);
+	SDL_Surface * loadImage(const CMemoryStream * data, const std::string & imageType);
 };

@@ -688,12 +688,12 @@ void CompImageD::draw(SDL_Surface *where, int posX, int posY, Rect *src, ui8 alp
 		ui8 bpp = where->format->BytesPerPixel;
 		
 		//Calculate position for blitting: pixels + Y + X
-		ui8* blitPos = (ui8*) where->pixels;
-		if (rotation & 4)
-			blitPos += (dest.y - currY) * where->pitch;
+		ui8 * blitPos = reinterpret_cast<ui8 *>(where->pixels);
+		if(rotation & 4)
+			blitPos += (static_cast<int>(dest.y) - currY) * where->pitch;
 		else
-			blitPos += (dest.y + currY) * where->pitch;
-		blitPos += dest.x * bpp;
+			blitPos += (static_cast<int>(dest.y) + currY) * where->pitch;
+		blitPos += static_cast<int>(dest.x) * bpp;
 
 		//Blit blocks that must be fully visible
 		while (currX + size < sourceRect.w)

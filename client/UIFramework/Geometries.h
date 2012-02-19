@@ -25,37 +25,40 @@
 // A point with x/y coordinate, used mostly for graphic rendering
 struct Point
 {
-	int x, y;
+	double x, y;
 
 	//constructors
 	Point()
 	{
-		x = y = 0;
+		x = y = 0.0;
 	};
-	Point(int X, int Y)
-		:x(X),y(Y)
+
+	Point(double X, double Y)
+		: x(X), y(Y)
 	{};
+
 	Point(const int3 &a)
-		:x(a.x),y(a.y)
+		: x(a.x), y(a.y)
 	{}
-	Point(const SDL_MouseMotionEvent &a)
-		:x(a.x),y(a.y)
+
+	Point(const SDL_MouseMotionEvent & a)
+		: x(a.x), y(a.y)
 	{}
 
 	template<typename T>
-	Point operator+(const T &b) const
+	Point operator+(const T & b) const
 	{
-		return Point(x+b.x,y+b.y);
+		return Point(x + b.x, y + b.y);
 	}
 
 	template<typename T>
-	Point operator*(const T &mul) const
+	Point operator*(const T & mul) const
 	{
-		return Point(x*mul, y*mul);
+		return Point(x * mul, y * mul);
 	}
 
 	template<typename T>
-	Point& operator+=(const T &b)
+	Point & operator+=(const T & b)
 	{
 		x += b.x;
 		y += b.y;
@@ -63,33 +66,40 @@ struct Point
 	}
 
 	template<typename T>
-	Point operator-(const T &b) const
+	Point operator-(const T & b) const
 	{
 		return Point(x - b.x, y - b.y);
 	}
 
 	template<typename T>
-	Point& operator-=(const T &b)
+	Point & operator-=(const T & b)
 	{
 		x -= b.x;
 		y -= b.y;
 		return *this;
 	}
-	bool operator<(const Point &b) const //product order
+
+	bool operator<(const Point & b) const //product order
 	{
-		return x < b.x   &&   y < b.y;
+		return x < b.x && y < b.y;
 	}
-	template<typename T> Point& operator=(const T &t)
+
+	template<typename T> 
+	Point & operator=(const T & t)
 	{
 		x = t.x;
 		y = t.y;
 		return *this;
 	}
-	template<typename T> bool operator==(const T &t) const
+
+	template<typename T> 
+	bool operator==(const T & t) const
 	{
 		return x == t.x  &&  y == t.y;
 	}
-	template<typename T> bool operator!=(const T &t) const
+
+	template<typename T> 
+	bool operator!=(const T & t) const
 	{
 		return !(*this == t);
 	}

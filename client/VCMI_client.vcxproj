@@ -246,6 +246,7 @@
     <ClCompile Include="CMusicHandler.cpp" />
     <ClCompile Include="CPlayerInterface.cpp" />
     <ClCompile Include="CPreGame.cpp" />
+    <ClCompile Include="CResourceHandler.cpp" />
     <ClCompile Include="CSndHandler.cpp" />
     <ClCompile Include="CSpellWindow.cpp" />
     <ClCompile Include="CVideoHandler.cpp" />
@@ -260,11 +261,13 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='RD|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="UIFramework\AnimationClasses.cpp" />
     <ClCompile Include="UIFramework\CCursorHandler.cpp" />
     <ClCompile Include="UIFramework\CGuiHandler.cpp" />
     <ClCompile Include="UIFramework\CIntObject.cpp" />
     <ClCompile Include="UIFramework\CIntObjectClasses.cpp" />
     <ClCompile Include="UIFramework\Geometries.cpp" />
+    <ClCompile Include="UIFramework\ImageClasses.cpp" />
     <ClCompile Include="UIFramework\SDL_Extensions.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -290,6 +293,7 @@
     <ClInclude Include="CMusicHandler.h" />
     <ClInclude Include="CPlayerInterface.h" />
     <ClInclude Include="CPreGame.h" />
+    <ClInclude Include="CResourceHandler.h" />
     <ClInclude Include="CSndHandler.h" />
     <ClInclude Include="CSoundBase.h" />
     <ClInclude Include="CSpellWindow.h" />
@@ -301,16 +305,18 @@
     <ClInclude Include="mapHandler.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="StdInc.h" />
+    <ClInclude Include="UIFramework\AnimationClasses.h" />
     <ClInclude Include="UIFramework\CCursorHandler.h" />
     <ClInclude Include="UIFramework\CGuiHandler.h" />
     <ClInclude Include="UIFramework\CIntObject.h" />
     <ClInclude Include="UIFramework\CIntObjectClasses.h" />
     <ClInclude Include="UIFramework\Geometries.h" />
+    <ClInclude Include="UIFramework\ImageClasses.h" />
+    <ClInclude Include="UIFramework\ImageClassesFwd.h" />
     <ClInclude Include="UIFramework\SDL_Extensions.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\ChangeLog" />
-    <None Include="ClassDiagram21.cd" />
     <None Include="vcmi.ico" />
   </ItemGroup>
   <ItemGroup>

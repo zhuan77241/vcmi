@@ -7,18 +7,18 @@
 #include "../../lib/GameConstants.h"
 #include "../Graphics.h"
 #include "../CGameInfo.h"
-#include "../CResourceHandler.h"
 
-IImage::IImage(const GraphicsLocator & Locator /*= GraphicsLocator()*/) : locator(Locator)
+void IImage::setPosition(const Point & pos)
 {
+	this->pos = pos;
 }
 
-const GraphicsLocator & IImage::getLocator() const
+Point IImage::getPosition() const
 {
-	return locator;
+	return pos;
 }
 
-CDefFile::CDefFile(TMemoryStreamPtr Data): palette(NULL)
+CDefFile::CDefFile(const CMemoryStream * Data): palette(NULL)
 {
 	//First 8 colors in def palette used for transparency
 	static SDL_Color H3Palette[8] =
@@ -239,6 +239,7 @@ void CDefFile::loadFrame(size_t frame, size_t group, ImageLoader &loader) const
 
 CDefFile::~CDefFile()
 {
+	delete data;
 	delete[] palette;
 }
 
@@ -301,13 +302,13 @@ CSDLImage::CSDLImageLoader::~CSDLImageLoader()
 	//TODO: RLE if compressed and bpp>1
 }
 
-CSDLImage::CSDLImage(TMemoryStreamPtr data, const std::string & imageType, const GraphicsLocator & locator /*= GraphicsLocator()*/) : IImage(locator)
+CSDLImage::CSDLImage(const CMemoryStream * data, const std::string & imageType)
 {
 	surf = CSDL_Ext::loadImage(data, imageType);
 	freeSurf = true;
 }
 
-CSDLImage::CSDLImage(const CDefFile * defFile, size_t frame, size_t group, const GraphicsLocator & locator /*= GraphicsLocator()*/) : IImage(locator)
+CSDLImage::CSDLImage(const CDefFile * defFile, size_t frame, size_t group)
 {
 	CSDLImageLoader loader(this);
 	defFile->loadFrame(frame, group, loader);
@@ -345,7 +346,7 @@ IImage * CSDLImage::clone() const
 	return new CSDLImage(*this);
 }
 
-void CSDLImage::draw(TImagePtr where, int posX, int posY, Rect * src,  ui8 alpha) const
+void CSDLImage::draw() const
 {
 	if(!surf)
 		return;
@@ -353,37 +354,34 @@ void CSDLImage::draw(TImagePtr where, int posX, int posY, Rect * src,  ui8 alpha
 	Rect sourceRect(margins.x, margins.y, surf->w, surf->h);
 	
 	//TODO: rotation and scaling
-	if (src)
+	/*if (src)
 	{
 		sourceRect = sourceRect & *src;
-	}
+	}*/
 
-	Rect destRect(posX, posY, surf->w, surf->h);
+	Rect destRect(pos.x, pos.y, surf->w, surf->h);
 	destRect += sourceRect.topLeft();
 	sourceRect -= margins;
-	CSDL_Ext::blitSurface(surf, &sourceRect, 
-		dynamic_cast<CSDLImage *>(const_cast<IImage *>(where.get()))->getSDL_Surface(), &destRect);
+	CSDL_Ext::blitSurface(surf, &sourceRect, screen, &destRect);
 }
 
-int CSDLImage::width() const
+int CSDLImage::getWidth() const
 {
 	return fullSize.x;
 }
 
-int CSDLImage::height() const
+int CSDLImage::getHeight() const
 {
 	return fullSize.y;
 }
 
-SDL_Surface * CSDLImage::getSDL_Surface() const
+SDL_Surface * CSDLImage::getRawSurface() const
 {
 	return surf;
 }
 
 void CSDLImage::recolorToPlayer(int player)
 {
-	locator.sel.playerColor = player;
-
 	if(surf->format->BitsPerPixel == 8)
 	{
 		SDL_Color * palette = NULL;
@@ -405,43 +403,14 @@ void CSDLImage::recolorToPlayer(int player)
 	}
 }
 
-void CSDLImage::recolorToPlayerViaSelector(const GraphicsSelector & selector)
-{
-	recolorToPlayer(selector.playerColor);
-}
-
-TImagePtr CSDLImage::recolorToPlayer(int player) const
-{
-	GraphicsLocator newLoc(locator);
-	newLoc.sel.playerColor = player;
-
-	return CCS->resh->getTransformedImage(this, boost::bind(&CSDLImage::recolorToPlayerViaSelector, 
-		const_cast<CSDLImage *>(this), newLoc.sel), newLoc);
-	
-}
-
 void CSDLImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
 {
 	assert(0);
 }
 
-void CSDLImage::rotate(EImageRotation::EImageRotation rotation)
+void CSDLImage::setAlpha(ui8 alpha)
 {
 	assert(0);
-}
-
-TImagePtr CSDLImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const
-{
-	assert(0);
-	TImagePtr ptr;
-	return ptr;
-}
-
-TImagePtr CSDLImage::rotate(EImageRotation::EImageRotation rotation) const
-{
-	assert(0);
-	TImagePtr ptr;
-	return ptr;
 }
 
 CCompImage::CCompImageLoader::CCompImageLoader(CCompImage * Img) : image(Img), position(NULL), entry(NULL),
@@ -625,8 +594,8 @@ CCompImage::CCompImageLoader::~CCompImageLoader()
 	}
 }
 
-CCompImage::CCompImage(const CDefFile * defFile, size_t frame, size_t group, const GraphicsLocator & locator /*= GraphicsLocator()*/) 
-: surf(NULL), length(0), line(NULL), palette(NULL)
+CCompImage::CCompImage(const CDefFile * defFile, size_t frame, size_t group) 
+: surf(NULL), length(0), line(NULL), palette(NULL), alpha(0)
 {
 	CCompImageLoader loader(this);
 	defFile->loadFrame(frame, group, loader);
@@ -640,7 +609,6 @@ CCompImage::CCompImage(const CCompImage & cpy)
 CCompImage & CCompImage::operator=(const CCompImage & cpy)
 {
 	fullSize = cpy.fullSize;
-	locator = cpy.locator;
 	length = cpy.length;
 	sprite = cpy.sprite;
 
@@ -671,29 +639,28 @@ CCompImage::~CCompImage()
 	delete [] palette;
 }
 
-void CCompImage::draw(TImagePtr where, int posX, int posY, Rect * src, ui8 alpha /* =255*/) const
+void CCompImage::draw() const
 {
-	int rotation = 0; //TODO
-	//rotation & 2 = horizontal rotation
-	//rotation & 4 = vertical rotation
+	ui8 rotation = 0; //TODO
+	//rotation == 1 = horizontal rotation
+	//rotation == 2 = vertical rotation
 	
 	if(!surf)
 		return;
 	Rect sourceRect(sprite);
 	
 	//TODO: rotation and scaling
-	if(src)
-		sourceRect = sourceRect & *src;
+	/*if(src)
+		sourceRect = sourceRect & *src;*/
 	
 	//Limit source rect to sizes of surface
-	SDL_Surface * screen = dynamic_cast<CSDLImage *>(const_cast<IImage *>(where.get()))->getSDL_Surface();
 	sourceRect = sourceRect & Rect(0, 0, screen->w, screen->h);
 
 	//Starting point on SDL surface
-	Point dest(posX + sourceRect.x, posY + sourceRect.y);
-	if(rotation & 2)
+	Point dest(pos.x + sourceRect.x, pos.y + sourceRect.y);
+	if(rotation == 1)
 		dest.y += sourceRect.h;
-	if(rotation & 4)
+	if(rotation == 2)
 		dest.x += sourceRect.w;
 
 	sourceRect -= sprite.topLeft();
@@ -725,17 +692,17 @@ void CCompImage::draw(TImagePtr where, int posX, int posY, Rect * src, ui8 alpha
 
 		//Calculate position for blitting: pixels + Y + X
 		ui8 * blitPos = reinterpret_cast<ui8 *>(screen->pixels);
-		if(rotation & 4)
-			blitPos += (dest.y - currY) * screen->pitch;
+		if(rotation == 2)
+			blitPos += (static_cast<int>(dest.y) - currY) * screen->pitch;
 		else
-			blitPos += (dest.y + currY) * screen->pitch;
-		blitPos += dest.x * bpp;
+			blitPos += (static_cast<int>(dest.y) + currY) * screen->pitch;
+		blitPos += static_cast<int>(dest.x) * bpp;
 
 		//Blit blocks that must be fully visible
 		while(currX + size < sourceRect.w)
 		{
 			//blit block, pointers will be modified if needed
-			blitBlockWithBpp(bpp, type, size, data, blitPos, alpha, rotation & 2);
+			blitBlockWithBpp(bpp, type, size, data, blitPos, alpha, rotation == 1);
 
 			currX += size;
 			type = *(data++);
@@ -743,7 +710,7 @@ void CCompImage::draw(TImagePtr where, int posX, int posY, Rect * src, ui8 alpha
 		}
 		//Blit last, semi-visible block
 		size = sourceRect.w - currX;
-		blitBlockWithBpp(bpp, type, size, data, blitPos, alpha, rotation & 2);
+		blitBlockWithBpp(bpp, type, size, data, blitPos, alpha, rotation == 1);
 	}
 }
 
@@ -842,20 +809,18 @@ void CCompImage::blitBlock(ui8 type, ui8 size, ui8 *&data, ui8 * & dest, ui8 alp
 	}
 }
 
-int CCompImage::width() const
+int CCompImage::getWidth() const
 {
 	return fullSize.x;
 }
 
-int CCompImage::height() const
+int CCompImage::getHeight() const
 {
 	return fullSize.y;
 }
 
 void CCompImage::recolorToPlayer(int player)
 {
-	locator.sel.playerColor = player;
-
 	SDL_Color * pal = NULL;
 	if(player < GameConstants::PLAYER_LIMIT && player >= 0)
 	{
@@ -877,40 +842,12 @@ void CCompImage::recolorToPlayer(int player)
 	}
 }
 
-void CCompImage::recolorToPlayerViaSelector(const GraphicsSelector & selector)
-{
-	recolorToPlayer(selector.playerColor);
-}
-
-TImagePtr CCompImage::recolorToPlayer(int player) const
-{
-	GraphicsLocator newLoc(locator);
-	newLoc.sel.playerColor = player;
-
-	return CCS->resh->getTransformedImage(this, boost::bind(&CCompImage::recolorToPlayerViaSelector, 
-		const_cast<CCompImage *>(this), newLoc.sel), newLoc);
-}
-
 void CCompImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
 {
 	assert(0);
 }
 
-TImagePtr CCompImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const
+void CCompImage::setAlpha(ui8 alpha)
 {
-	assert(0);
-	TImagePtr ptr;
-	return ptr;
-}
-
-void CCompImage::rotate(EImageRotation::EImageRotation rotation)
-{
-	assert(0);
-}
-
-TImagePtr CCompImage::rotate(EImageRotation::EImageRotation rotation) const
-{
-	assert(0);
-	TImagePtr ptr;
-	return ptr;
+	this->alpha = alpha;
 }

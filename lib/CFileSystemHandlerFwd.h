@@ -23,7 +23,6 @@ class CVideoResourceHandler;
 class CFileSystemHandler;
 
 typedef boost::unordered_map<ResourceIdentifier, std::list<ResourceLocator> > TResourcesMap;
-typedef shared_ptr<CMemoryStream> TMemoryStreamPtr;
 
 // Specifies the resource type
 namespace EResType
@@ -94,7 +93,7 @@ struct DLL_LINKAGE ResourceLocator
 	ResourceLocator(IResourceLoader * Loader, const std::string & ResourceName) 
 		: loader(Loader), resourceName(ResourceName) { };
 
-	inline bool operator==(ResourceLocator const & other) const
+	/*inline bool operator==(ResourceLocator const & other) const
 	{
 		return loader == other.loader && resourceName == other.resourceName;
 	}
@@ -106,5 +105,5 @@ struct DLL_LINKAGE ResourceLocator
 		boost::hash_combine(seed, p.resourceName);
 
 		return seed;
-	}
+	}*/
 };

@@ -56,6 +56,13 @@
     <ClCompile Include="BattleInterface\CCreatureAnimation.cpp">
       <Filter>BattleInterface</Filter>
     </ClCompile>
+    <ClCompile Include="UIFramework\AnimationClasses.cpp">
+      <Filter>UIFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="UIFramework\ImageClasses.cpp">
+      <Filter>UIFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="CResourceHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CAdvmapInterface.h" />
@@ -117,6 +124,16 @@
     <ClInclude Include="BattleInterface\CCreatureAnimation.h">
       <Filter>BattleInterface</Filter>
     </ClInclude>
+    <ClInclude Include="UIFramework\AnimationClasses.h">
+      <Filter>UIFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="UIFramework\ImageClasses.h">
+      <Filter>UIFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="UIFramework\ImageClassesFwd.h">
+      <Filter>UIFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="CResourceHandler.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="VCMI_client.rc" />

@@ -39,11 +39,9 @@ public:
 	ui32 readInt32() const;
 	
 	// Gets raw ui8 pointer of data. Do not delete that data. Ownership belongs to CMemoryStream.
-	const ui8 * getRawData() const;
-	const ui8 * getRawData(size_t seekPos) const;
-	ui8 * cloneRawData() const;
+	ui8 * getRawData() const;
+	ui8 * getRawData(size_t seekPos) const;
 	std::string getDataAsString() const;
-	void writeToFile(const std::string & destFile) const;
 };
 
 class DLL_LINKAGE CFileInfo
@@ -109,7 +107,7 @@ public:
 	virtual void insertEntriesIntoResourcesMap(TResourcesMap & map) =0;
 	
 	// Loads a resource with the given resource name
-	virtual TMemoryStreamPtr loadResource(const std::string & resourceName) =0;
+	virtual CMemoryStream * loadResource(const std::string & resourceName) =0;
 
 	// Get timestamp from file
 	virtual std::time_t getTimestampFromFile(const std::string & resourceName) const { return 0; }
@@ -170,7 +168,7 @@ public:
 		: IArchiveLoader(lodFile, prefix) { }; 
 
 	void insertEntriesIntoResourcesMap(TResourcesMap & map);
-	TMemoryStreamPtr loadResource(const std::string & resourceName);
+	CMemoryStream * loadResource(const std::string & resourceName);
 };
 
 // Responsible for loading files from filesystem
@@ -181,7 +179,7 @@ public:
 		: IResourceLoader(PathToFolder, Prefix) { };
 
 	void insertEntriesIntoResourcesMap(TResourcesMap & map);
-	TMemoryStreamPtr loadResource(const std::string & resourceName);
+	CMemoryStream * loadResource(const std::string & resourceName);
 	std::time_t getTimestampFromFile(const std::string & resourceName) const;
 };
 
@@ -191,7 +189,7 @@ protected:
 	CMediaResourceHandler(const std::string & file, const std::string & prefix): IArchiveLoader(file, prefix) { };
 
 public:
-	TMemoryStreamPtr loadResource(const std::string & resourceName);
+	CMemoryStream * loadResource(const std::string & resourceName);
 };
 
 // Responsible for loading sounds from snd archives
@@ -219,15 +217,11 @@ class DLL_LINKAGE CFileSystemHandler
 	std::vector<IResourceLoader *> loaders;
 	boost::mutex * mutex;
 
-	boost::unordered_map<ResourceLocator, weak_ptr<CMemoryStream> > memoryStreams;
-
-	TMemoryStreamPtr addResource(const ResourceLocator & locator, bool unpackResource = false);
-
 	// Get unpacked file with the given filepath
-	TMemoryStreamPtr getUnpackedFile(const std::string & path) const;
+	CMemoryStream * getUnpackedFile(const std::string & path) const;
 
 	// Get unpacked data from memory
-	TMemoryStreamPtr getUnpackedData(TMemoryStreamPtr memStream) const;
+	CMemoryStream * getUnpackedData(const CMemoryStream * memStream) const;
 
 public:
 	CFileSystemHandler();
@@ -238,10 +232,11 @@ public:
 
 	// Get a resource as a flat, binary stream(shared) with the given identifier and a flag, whether to load
 	// resource from LOD/first loaded or last inserted resource
-	TMemoryStreamPtr getResource(const ResourceIdentifier & identifier, bool fromBegin = false, bool unpackResource = false);
+	CMemoryStream * getResource(const ResourceIdentifier & identifier, bool fromBegin = false, bool unpackResource = false);
 	
-	// Get a resource with locator object directly.
-	TMemoryStreamPtr getResource(const ResourceLocator & locator, bool unpackResource = false);
+	CMemoryStream * getResource(const ResourceLocator & locator, bool unpackResource = false);
+
+	ResourceLocator getResourceLocator(const ResourceIdentifier & identifier, bool fromBegin = false);
 
 	// Get a resource as a string(not shared, can be easily altered) with the given identifier and a flag, 
 	// whether to load resource from LOD/first loaded or last inserted resource
@@ -249,9 +244,9 @@ public:
 
 	// Gets a resource unpacked with the given identifier and a flag,
 	// whether to load resource from LOD/first loaded or last inserted resource
-	TMemoryStreamPtr getUnpackedResource(const ResourceIdentifier & identifier, bool fromBegin = false);
+	CMemoryStream * getUnpackedResource(const ResourceIdentifier & identifier, bool fromBegin = false);
 
-	void writeMemoryStreamToFile(TMemoryStreamPtr memStream, const std::string & destFile) const;
+	void writeMemoryStreamToFile(CMemoryStream * memStream, const std::string & destFile) const;
 
 	// Get all files with given prefix and resource type.
 	void getFilesWithExt(std::vector<CFileInfo> & out, const std::string & prefix, const EResType::EResType & type);

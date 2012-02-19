@@ -69,19 +69,12 @@ CMemoryStream::~CMemoryStream()
 	delete[] data;
 }
 
-ui8 * CMemoryStream::cloneRawData() const
-{
-	ui8 * cloned = new ui8[length];
-	memcpy(cloned, data, length);
-	return cloned;
-}
-
-const ui8 * CMemoryStream::getRawData() const
+ui8 * CMemoryStream::getRawData() const
 {
 	return data;
 }
 
-const ui8 * CMemoryStream::getRawData(size_t seekPos) const
+ui8 * CMemoryStream::getRawData(size_t seekPos) const
 {
 	return data + seekPos;
 }
@@ -90,13 +83,6 @@ std::string CMemoryStream::getDataAsString() const
 {
 	std::string rslt(data, data + length); 
 	return rslt;
-}
-
-void CMemoryStream::writeToFile(const std::string & destFile) const
-{
-	std::ofstream out(destFile.c_str(),std::ios_base::binary);
-	out.write(reinterpret_cast<char *>(data), length);
-	out.close();
 }
 
 void CMemoryStream::setSeekPos(size_t pos) const
@@ -273,14 +259,14 @@ void CLodResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
 	delete [] lodEntries;
 }
 
-TMemoryStreamPtr CLodResourceLoader::loadResource(const std::string & resourceName)
+CMemoryStream * CLodResourceLoader::loadResource(const std::string & resourceName)
 {
 	assert(entries.find(resourceName) != entries.end());
 
 	const ArchiveEntry entry = entries[resourceName];
 
 	ui8 * outp;
-	TMemoryStreamPtr rslt;
+	CMemoryStream * rslt;
 
 	std::ifstream LOD;
 	LOD.open(folder.c_str(), std::ios::in | std::ios::binary);
@@ -292,7 +278,7 @@ TMemoryStreamPtr CLodResourceLoader::loadResource(const std::string & resourceNa
 
 		LOD.seekg(entry.offset, std::ios::beg);
 		LOD.read(reinterpret_cast<char *>(outp), entry.realSize);
-		rslt = shared_ptr<CMemoryStream>(new CMemoryStream(outp, entry.realSize));
+		rslt = new CMemoryStream(outp, entry.realSize);
 		return rslt;
 	}
 	//we will decompress file
@@ -310,7 +296,7 @@ TMemoryStreamPtr CLodResourceLoader::loadResource(const std::string & resourceNa
 		}
 		delete[] outp;
 
-		rslt = shared_ptr<CMemoryStream>(new CMemoryStream(decomp, entry.realSize));
+		rslt = new CMemoryStream(decomp, entry.realSize);
 		return rslt;
 	}
 
@@ -414,11 +400,11 @@ void CFileResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
 	}
 }
 
-TMemoryStreamPtr CFileResourceLoader::loadResource(const std::string & resourceName)
+CMemoryStream * CFileResourceLoader::loadResource(const std::string & resourceName)
 {
-	TMemoryStreamPtr rslt(new CMemoryStream(resourceName));
+	CMemoryStream * rslt = new CMemoryStream(resourceName);
 	if(rslt->getLength() == 0)
-		rslt = shared_ptr<CMemoryStream>();
+		rslt = NULL;
 
 	return rslt;
 }
@@ -527,13 +513,13 @@ void CVideoResourceHandler::insertEntriesIntoResourcesMap(TResourcesMap & map)
 	}
 }
 
-TMemoryStreamPtr CMediaResourceHandler::loadResource(const std::string & resourceName)
+CMemoryStream * CMediaResourceHandler::loadResource(const std::string & resourceName)
 {
 	assert(entries.find(resourceName) != entries.end());
 
 	const ArchiveEntry entry = entries[resourceName];
 
-	TMemoryStreamPtr rslt;
+	CMemoryStream * rslt = NULL;
 
 	std::ifstream fileHandle;
 	fileHandle.open(folder.c_str(), std::ios::in | std::ios::binary);
@@ -548,7 +534,7 @@ TMemoryStreamPtr CMediaResourceHandler::loadResource(const std::string & resourc
 	fileHandle.read(reinterpret_cast<char *>(outp), entry.size);
 	fileHandle.close();
 
-	rslt = shared_ptr<CMemoryStream>(new CMemoryStream(outp, entry.size));
+	rslt = new CMemoryStream(outp, entry.size);
 	return rslt;
 }
 
@@ -593,114 +579,73 @@ EResType::EResType CFileSystemHandler::convertFileExtToResType(const std::string
 		return it->second;
 }
 
-TMemoryStreamPtr CFileSystemHandler::getResource(const ResourceIdentifier & identifier, bool fromBegin /*=false */, bool unpackResource /*=false */)
+CMemoryStream * CFileSystemHandler::getResource(const ResourceIdentifier & identifier, bool fromBegin /*=false */, bool unpackResource /*=false */)
 {
-	TMemoryStreamPtr rslt;
+	ResourceLocator loc = getResourceLocator(identifier, fromBegin);
+	return getResource(loc, unpackResource);	
+}
 
+CMemoryStream * CFileSystemHandler::getResource(const ResourceLocator & locator, bool unpackResource /*= false*/)
+{
+	CMemoryStream * rslt = NULL;
+
+	// load it
+	mutex->lock();
+
+	rslt = locator.loader->loadResource(locator.resourceName);
+	if (unpackResource)
+		rslt = getUnpackedData(rslt);
+
+	mutex->unlock();
+	return rslt;
+}
+
+ResourceLocator CFileSystemHandler::getResourceLocator(const ResourceIdentifier & identifier, bool fromBegin /*= false*/)
+{
 	// check if resource is registered
 	if(resources.find(identifier) == resources.end())
 	{
 		tlog2 << "Resource with name " << identifier.name << " and type " 
 			<< identifier.type << " wasn't found." << std::endl;
-		return rslt;
+		return ResourceLocator();
 	}
-	
+
 	// get former/origin resource e.g. from lod with fromBegin=true 
 	// and get the latest inserted resource with fromBegin=false
 	std::list<ResourceLocator> locators = resources.at(identifier);
 	ResourceLocator loc;
 	if (!fromBegin)
-		loc = locators.back();
+		return locators.back();
 	else 
-		loc = locators.front();
-	
-	// check if resource is already loaded
-	if(memoryStreams.find(loc) == memoryStreams.end())
-	{
-		// load it
-		return addResource(loc, unpackResource);
-	}
-	
-	weak_ptr<CMemoryStream> ptr = memoryStreams.at(loc);
-	if (ptr.expired())
-	{
-		// load it
-		return addResource(loc, unpackResource);
-	}
-		
-	// already loaded, just return resource
-	rslt = shared_ptr<CMemoryStream>(ptr);
-	return rslt;
-}
-
-TMemoryStreamPtr CFileSystemHandler::getResource(const ResourceLocator & locator, bool unpackResource /*= false*/)
-{
-	TMemoryStreamPtr rslt;
-
-	// check if resource is already loaded
-	if(memoryStreams.find(locator) == memoryStreams.end())
-	{
-		// load it
-		return addResource(locator, unpackResource);
-	}
-
-	weak_ptr<CMemoryStream> ptr = memoryStreams.at(locator);
-	if (ptr.expired())
-	{
-		// load it
-		return addResource(locator, unpackResource);
-	}
-
-	// already loaded, just return resource
-	rslt = shared_ptr<CMemoryStream>(ptr);
-	return rslt;
-}
-
-TMemoryStreamPtr CFileSystemHandler::addResource(const ResourceLocator & loc, bool unpackResource /*=false */)
-{
-	mutex->lock();
-	TMemoryStreamPtr rslt = loc.loader->loadResource(loc.resourceName);
-	
-	// Don't register unpacked data, as this would result in trouble, when you first load the same
-	// resource packed and then unpacked if it's still in use at the same time.
-	// MAPS/CAMPAIGNS don't need to shared anyway as it's impossible to play two campaigns the same time.:)
-	if (unpackResource)
-		rslt = getUnpackedData(rslt);
-	else
-	{
-		weak_ptr<CMemoryStream> ptr(rslt);
-		memoryStreams.insert(std::make_pair(loc, ptr));
-	}
-	mutex->unlock();
-	return rslt;
+		return locators.front();
 }
 
 std::string CFileSystemHandler::getResourceAsString(const ResourceIdentifier & identifier, bool fromBegin /*=false */)
 {
-	TMemoryStreamPtr memStream = getResource(identifier, fromBegin);
+	CMemoryStream * memStream = getResource(identifier, fromBegin);
 	return memStream->getDataAsString();
 }
 
-TMemoryStreamPtr CFileSystemHandler::getUnpackedResource(const ResourceIdentifier & identifier, bool fromBegin /*=false */)
+CMemoryStream * CFileSystemHandler::getUnpackedResource(const ResourceIdentifier & identifier, bool fromBegin /*=false */)
 {
 	return getResource(identifier, fromBegin, true);
 }
 
 //It is possible to use uncompress function from zlib but we  need to know decompressed size (not present in compressed data)
-TMemoryStreamPtr CFileSystemHandler::getUnpackedData(TMemoryStreamPtr memStream) const
+CMemoryStream * CFileSystemHandler::getUnpackedData(const CMemoryStream * memStream) const
 {
 	std::string filename = GVCMIDirs.UserPath + "/tmp_gzip";
 
-	FILE * file = fopen(filename.c_str(), "wb");
-	fwrite(memStream->getRawData(), 1, memStream->getLength(), file);
-	fclose(file);
+	std::ofstream file(filename.c_str(), std::ios_base::binary);
+	file.write(reinterpret_cast<char *>(memStream->getRawData()), memStream->getLength());
+	file.close();
 
-	TMemoryStreamPtr ret = getUnpackedFile(filename);
+	CMemoryStream * ret = getUnpackedFile(filename);
 	remove(filename.c_str());
 	return ret;
 }
 
-TMemoryStreamPtr CFileSystemHandler::getUnpackedFile(const std::string & path) const
+CMemoryStream * CFileSystemHandler::getUnpackedFile(const std::string & path) const
 {
 	const int bufsize = 65536;
 	int mapsize = 0;
@@ -712,11 +657,13 @@ TMemoryStreamPtr CFileSystemHandler::getUnpackedFile(const std::string & path) c
 	// Read a map by chunks
 	// We could try to read the map size directly (cf RFC 1952) and then read
 	// directly the whole map, but that would create more problems.
-	do {
-		ui8 *buf = new ui8[bufsize];
+	do 
+	{
+		ui8 * buf = new ui8[bufsize];
 
 		int ret = gzread(map, buf, bufsize);
-		if (ret == 0 || ret == -1) {
+		if(ret == 0 || ret == -1) 
+		{
 			delete [] buf;
 			break;
 		}
@@ -728,26 +675,26 @@ TMemoryStreamPtr CFileSystemHandler::getUnpackedFile(const std::string & path) c
 	gzclose(map);
 
 	// Now that we know the uncompressed size, reassemble the chunks
-	ui8 *initTable = new ui8[mapsize];
+	ui8 * initTable = new ui8[mapsize];
 
 	std::vector<ui8 *>::iterator it;
 	int offset;
 	int tocopy = mapsize;
-	for (it = mapstr.begin(), offset = 0; 
-		it != mapstr.end(); 
-		it++, offset+=bufsize ) {
-			memcpy(&initTable[offset], *it, tocopy > bufsize ? bufsize : tocopy);
-			tocopy -= bufsize;
-			delete [] *it;
+	for(it = mapstr.begin(), offset = 0; it != mapstr.end(); it++, offset += bufsize ) 
+	{
+		memcpy(&initTable[offset], *it, tocopy > bufsize ? bufsize : tocopy);
+		tocopy -= bufsize;
+		delete [] *it;
 	}
 	
-	TMemoryStreamPtr rslt(new CMemoryStream(initTable, mapsize));
-	return rslt;
+	return new CMemoryStream(initTable, mapsize);
 }
 
-void CFileSystemHandler::writeMemoryStreamToFile(TMemoryStreamPtr memStream, const std::string & destFile) const
+void CFileSystemHandler::writeMemoryStreamToFile(CMemoryStream * memStream, const std::string & destFile) const
 {
-	memStream->writeToFile(destFile);
+	std::ofstream out(destFile.c_str(),std::ios_base::binary);
+	out.write(reinterpret_cast<char *>(memStream->getRawData()), memStream->getLength());
+	out.close();
 }
 
 const TResourcesMap & CFileSystemHandler::getResourcesMap() const

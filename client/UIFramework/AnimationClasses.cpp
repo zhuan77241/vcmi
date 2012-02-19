@@ -5,15 +5,6 @@
 #include "../CGameInfo.h"
 #include "../CResourceHandler.h"
 
-IAnimation::IAnimation(const GraphicsLocator & Locator /*= GraphicsLocator()*/) : locator(Locator)
-{
-}
-
-const GraphicsLocator & IAnimation::getLocator() const
-{
-	return locator;
-}
-
 std::map<size_t, size_t> IAnimation::getEntries() const
 {
 	return entries;
@@ -21,14 +12,14 @@ std::map<size_t, size_t> IAnimation::getEntries() const
 
 si8 IAnimation::getLoadedGroup() const
 {
-	return locator.sel.group;
+	return loadedGroup;
 }
 
-CImageBasedAnimation::CImageBasedAnimation(const CDefFile * defFile, size_t group /*= -1*/, const GraphicsLocator & Locator /*= GraphicsLocator()*/) : IAnimation(Locator)
+CImageBasedAnimation::CImageBasedAnimation(const CDefFile * defFile, size_t group /*= -1*/)
 {
 	images.clear();
 	entries = defFile->getEntries();
-	locator.sel.group = group;
+	loadedGroup = group;
 	
 	if (group == -1)
 	{
@@ -40,8 +31,6 @@ CImageBasedAnimation::CImageBasedAnimation(const CDefFile * defFile, size_t grou
 	{
 		if(vstd::contains(entries, group))
 		{
-			locator.sel.group = group;
-
 			for(size_t frame = 0; frame < entries[group]; frame++)
 				images[group][frame] = CCS->resh->createSpriteFromDEF(defFile, frame, group);
 		}
@@ -55,17 +44,14 @@ CImageBasedAnimation::CImageBasedAnimation(const CImageBasedAnimation & other)
 
 CImageBasedAnimation & CImageBasedAnimation::operator=(const CImageBasedAnimation & other)
 {
-	for(std::map<size_t, std::map<size_t, TMutableImagePtr> >::const_iterator i = other.images.begin();
-		i != other.images.end(); ++i)
+	for(group_itc it = other.images.begin(); it != other.images.end(); ++it)
 	{
-		size_t group = (*i).first;
-		std::map<size_t, TMutableImagePtr> frames = (*i).second;
-		for(std::map<size_t, TMutableImagePtr>::iterator j = frames.begin(); 
-			j != frames.end(); ++j)
+		size_t group = it->first;
+		for(frame_itc it2 = it->second.begin(); it2 != it->second.end(); ++it2)
 		{
-			size_t frame = (*j).first;
-			shared_ptr<IImage> ptr((*j).second->clone());
-			images[group][frame] = ptr;
+			size_t frame = it2->first;
+			IImage * img = it2->second->clone();
+			images[group][frame] = img;
 		}
 	}
 
@@ -77,95 +63,114 @@ IAnimation * CImageBasedAnimation::clone() const
 	return new CImageBasedAnimation(*this);
 }
 
-void CImageBasedAnimation::draw(TImagePtr where, size_t frame, size_t group, int posX, int posY) const
+CImageBasedAnimation::~CImageBasedAnimation()
 {
-	std::map<size_t, std::map<size_t, TMutableImagePtr> >::const_iterator it = images.find(group);
-	if (it != images.end())
-	{
-		std::map<size_t, TMutableImagePtr> frames = (*it).second;
-		std::map<size_t, TMutableImagePtr>::const_iterator it2 = frames.find(frame);
-		
-		if (it2 != frames.end())
-		{
-				(*it2).second->draw(where, posX, posY);
-		}
-	}
+	forEach([](IImage * img) { 
+		delete img;
+	});
 }
 
-void CImageBasedAnimation::recolorToPlayer(int player)
+void CImageBasedAnimation::forEach(std::function<void(IImage *)> func)
 {
 	// recolor all groups
-	if(locator.sel.group == -1)
+	if(loadedGroup == -1)
 	{
-		for(size_t group = 0; group < images.size(); ++group)
+		for(group_it it = images.begin(); it != images.end(); ++it)
 		{
-			for(size_t frame = 0; frame < images[group].size(); ++frame)
+			for(frame_it it2 = it->second.begin(); it2 != it->second.end(); ++it2)
 			{
-				TMutableImagePtr img = images[group][frame];
-				IGraphicsTasks * ptr = dynamic_cast<IGraphicsTasks *>(img.get());
-				ptr->recolorToPlayer(player);
+				IImage * img = it2->second;
+				func(img);
 			}
 		}
 	}
 	else
 	{
 		// recolor loaded group
-		for(size_t frame = 0; frame < images[locator.sel.group].size(); ++frame)
+		group_it it = images.find(loadedGroup);
+		assert(it != images.end());
+
+		for(frame_it it2 = it->second.begin(); it2 != it->second.end(); ++it2)
 		{
-			TMutableImagePtr img =  images[locator.sel.group][frame];
-			IGraphicsTasks * ptr = dynamic_cast<IGraphicsTasks *>(img.get());
-			ptr->recolorToPlayer(player);
+			IImage * img = it2->second;
+			func(img);
 		}
 	}
 }
 
-void CImageBasedAnimation::recolorToPlayerViaSelector(const GraphicsSelector & selector)
+void CImageBasedAnimation::draw(size_t frame, size_t group) const
 {
-	recolorToPlayer(selector.playerColor);
+	std::map<size_t, std::map<size_t, IImage *> >::const_iterator it = images.find(group);
+	if(it != images.end())
+	{
+		std::map<size_t, IImage *> frames = it->second;
+		std::map<size_t, IImage *>::const_iterator it2 = frames.find(frame);
+		
+		if(it2 != frames.end())
+		{
+			it2->second->draw();
+		}
+	}
 }
 
-TAnimationPtr CImageBasedAnimation::recolorToPlayer(int player) const
+void CImageBasedAnimation::recolorToPlayer(int player)
 {
-	GraphicsLocator newLoc(locator);
-	newLoc.sel.playerColor = player;
-
-	return CCS->resh->getTransformedAnimation(this, boost::bind(&CImageBasedAnimation::recolorToPlayerViaSelector, 
-		const_cast<CImageBasedAnimation *>(this), newLoc.sel), newLoc);
+	forEach([player](IImage * img) { 
+		img->recolorToPlayer(player);
+	});
 }
 
-TAnimationPtr CImageBasedAnimation::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) const
+void CImageBasedAnimation::setAlpha(ui8 alpha)
 {
 	assert(0);
-	TAnimationPtr ptr;
-	return ptr;
 }
 
-TAnimationPtr CImageBasedAnimation::rotate(EImageRotation::EImageRotation rotation) const
+void CImageBasedAnimation::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
 {
 	assert(0);
-	TAnimationPtr ptr;
-	return ptr;
 }
 
-CAnimation::CAnimation(TAnimationPtr animation) : currentGroup(0), currentFrame(0)
+CDEFAnimation::CDEFAnimation(const CDefFile * defFile)
+	: def(defFile)
 {
-	anim = animation;
+}
+
+void CDEFAnimation::draw() const
+{
+	/*switch(dest->format->BytesPerPixel)
+	{
+	case 2: return drawT<2>(dest, x, y,  destRect);
+	case 3: return drawT<3>(dest, x, y,  destRect);
+	case 4: return drawT<4>(dest, x, y,  destRect);
+	default:
+		tlog1 << (int)dest->format->BitsPerPixel << " bpp is not supported!!!\n";
+		return -1;
+	}*/
+}
+
+CAnimationHolder::CAnimationHolder(IAnimation * animation) : anim(animation), currentGroup(0), currentFrame(0)
+{
 	setGroup(0);
 }
 
-CAnimation::CAnimation(const ResourceIdentifier & identifier) : currentGroup(0), currentFrame(0)
+CAnimationHolder::CAnimationHolder(const ResourceIdentifier & identifier) : currentGroup(0), currentFrame(0)
 {
 	anim = CCS->resh->getAnimation(identifier);
 	setGroup(0);
 }
 
-CAnimation::CAnimation(const ResourceIdentifier & identifier, size_t group, bool repeat /*= false*/) : currentGroup(group), currentFrame(0)
+CAnimationHolder::CAnimationHolder(const ResourceIdentifier & identifier, size_t group, bool repeat /*= false*/) : currentGroup(group), currentFrame(0)
 {
 	anim = CCS->resh->getAnimation(identifier, group);
 	setGroup(group, repeat);
 }
 
-void CAnimation::setGroup(size_t group, bool repeat /*= false*/)
+CAnimationHolder::~CAnimationHolder()
+{
+	delete anim;
+}
+
+void CAnimationHolder::setGroup(size_t group, bool repeat /*= false*/)
 {
 	this->repeat = repeat;
 	std::map<size_t, size_t> entries = anim->getEntries();
@@ -173,8 +178,7 @@ void CAnimation::setGroup(size_t group, bool repeat /*= false*/)
 	// check if the group is loaded
 	if (anim->getLoadedGroup() != group && anim->getLoadedGroup() != -1)
 	{
-		// TODO: output resource name, resource source
-		tlog2 << "Group Nr. " << group << " hasn't been loaded." << std::endl;
+		tlog2 << "Group Nr. " << group << " couldn't be loaded." << std::endl;
 		return;
 	}
 
@@ -187,13 +191,11 @@ void CAnimation::setGroup(size_t group, bool repeat /*= false*/)
 	}
 	else
 	{
-		// if all groups have been loaded and the specified group can't be accessed then
-		// throw no exception
-		// TODO: output warning/debugger warning?
+		tlog3 << "Group Nr. " << group << " isn't available." << std::endl;
 	}
 }
 
-void CAnimation::update(double elapsedTime)
+void CAnimationHolder::update(double elapsedTime)
 {
 	// TODO: get frames per second default setting, affects animation playing speed
 	// standing anim group shouldn't be faster, etc... -> setGroup should set framesSecond (?)
@@ -214,22 +216,17 @@ void CAnimation::update(double elapsedTime)
 	currentTime += elapsedTime;
 }
 
-void CAnimation::draw(TImagePtr where, int posX, int posY)
+void CAnimationHolder::draw()
 {
-	anim->draw(where, currentFrame, currentGroup, posX, posY);
+	anim->draw(currentFrame, currentGroup);
 }
 
-void CAnimation::recolorToPlayer(int player)
+void CAnimationHolder::recolorToPlayer(int player)
 {
-	anim = anim->recolorToPlayer(player);
+	anim->recolorToPlayer(player);
 }
 
-void CAnimation::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
-{
-
-}
-
-void CAnimation::rotate(EImageRotation::EImageRotation rotation)
+void CAnimationHolder::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
 {
 
 }
