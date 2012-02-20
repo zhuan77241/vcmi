@@ -29,9 +29,6 @@ public:
 
 	virtual void draw() const =0;
 
-	virtual int getWidth() const=0;
-	virtual int getHeight() const=0;
-
 	void setPosition(const Point & pos);
 	Point getPosition() const;
 };
@@ -47,6 +44,25 @@ class CDefFile
 	SDL_Color * palette;
 
 public:
+	struct SpriteDef
+	{
+		ui32 size;
+
+		// format in which pixel data is stored
+		ui32 format;    
+
+		// full width and height of frame, including borders
+		ui32 fullWidth; 
+		ui32 fullHeight;
+
+		// width and height of pixel data, borders excluded
+		ui32 width;     
+		ui32 height;
+
+		si32 leftMargin;
+		si32 topMargin;
+	};
+	
 	CDefFile(const CMemoryStream * Data);
 	~CDefFile();
 
@@ -55,6 +71,10 @@ public:
 	void loadFrame(size_t frame, size_t group, ImageLoader &loader) const;
 
 	std::map<size_t, size_t> getEntries() const;
+	size_t getOffset(size_t group, size_t frame) const;
+	const CMemoryStream * getData() const;
+	SpriteDef getSpriteDef(size_t group, size_t frame) const;
+	SDL_Color getColorFromPalette(ui8 colorNr) const;
 };
 
 /*
@@ -110,15 +130,14 @@ public:
 
 	IImage * clone() const;
 	void draw() const;
-	int getWidth() const;
-	int getHeight() const;
 	
 	// Get raw pointer to SDL surface.
 	SDL_Surface * getRawSurface() const;
 
 	void recolorToPlayer(int player);
-	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha);
+	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity);
 	void setAlpha(ui8 alpha);
+	void flipHorizontal(bool flipped);
 };
 
 /*
@@ -197,10 +216,9 @@ public:
 	IImage * clone() const;
 
 	void draw() const;
-	int getWidth() const;
-	int getHeight() const;
 
 	void recolorToPlayer(int player);
-	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha);
+	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity);
 	void setAlpha(ui8 alpha);
+	void flipHorizontal(bool flipped);
 };

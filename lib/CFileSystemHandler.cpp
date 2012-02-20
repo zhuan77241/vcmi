@@ -69,12 +69,22 @@ CMemoryStream::~CMemoryStream()
 	delete[] data;
 }
 
-ui8 * CMemoryStream::getRawData() const
+const ui8 * CMemoryStream::getRawData() const
 {
 	return data;
 }
 
-ui8 * CMemoryStream::getRawData(size_t seekPos) const
+const ui8 * CMemoryStream::getRawData(size_t seekPos) const
+{
+	return data + seekPos;
+}
+
+ui8 * CMemoryStream::getRawData()
+{
+	return data;
+}
+
+ui8 * CMemoryStream::getRawData(size_t seekPos)
 {
 	return data + seekPos;
 }
@@ -290,7 +300,7 @@ CMemoryStream * CLodResourceLoader::loadResource(const std::string & resourceNam
 		LOD.read(reinterpret_cast<char *>(outp), entry.size);
 		ui8 * decomp = NULL;
 
-		if (decompressFile(outp, entry.size, entry.realSize, decomp))
+		if(!decompressFile(outp, entry.size, entry.realSize, decomp))
 		{
 			tlog1 << "File decompression wasn't successful. Resource name: " << resourceName << std::endl;
 		}
@@ -319,7 +329,8 @@ bool CLodResourceLoader::decompressFile(ui8 * in, int size, int realSize, ui8 *&
 	strm.next_in = Z_NULL;
 	ret = inflateInit2(&strm, wBits);
 	if (ret != Z_OK)
-		return ret;
+		return false;
+
 	int chunkNumber = 0;
 	do
 	{
@@ -348,7 +359,7 @@ bool CLodResourceLoader::decompressFile(ui8 * in, int size, int realSize, ui8 *&
 			case Z_DATA_ERROR:
 			case Z_MEM_ERROR:
 				(void)inflateEnd(&strm);
-				return ret;
+				return false;
 			}
 
 			if(breakLoop)
@@ -364,7 +375,7 @@ bool CLodResourceLoader::decompressFile(ui8 * in, int size, int realSize, ui8 *&
 
 	/* clean up and return */
 	(void)inflateEnd(&strm);
-	return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
+	return ret == Z_STREAM_END ? true : false;
 }
 
 void CFileResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
@@ -385,7 +396,7 @@ void CFileResourceLoader::insertEntriesIntoResourcesMap(TResourcesMap & map)
 			{
 				//we can't get relative path with boost at the moment - need to create path to file manually
 				std::string relativePath, name, ext;
-				for (size_t i=0; i<dir.level() && i<path.size(); i++)
+				for(size_t i = 0; i < static_cast<size_t>(dir.level()) && i < path.size(); i++)
 					relativePath += path[i] + '/';
 
 				relativePath += dir->path().leaf();
@@ -637,7 +648,7 @@ CMemoryStream * CFileSystemHandler::getUnpackedData(const CMemoryStream * memStr
 	std::string filename = GVCMIDirs.UserPath + "/tmp_gzip";
 
 	std::ofstream file(filename.c_str(), std::ios_base::binary);
-	file.write(reinterpret_cast<char *>(memStream->getRawData()), memStream->getLength());
+	file.write(reinterpret_cast<const char *>(memStream->getRawData()), memStream->getLength());
 	file.close();
 
 	CMemoryStream * ret = getUnpackedFile(filename);

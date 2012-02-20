@@ -25,15 +25,15 @@
 // A point with x/y coordinate, used mostly for graphic rendering
 struct Point
 {
-	double x, y;
+	int x, y;
 
 	//constructors
 	Point()
 	{
-		x = y = 0.0;
+		x = y = 0;
 	};
 
-	Point(double X, double Y)
+	Point(int X, int Y)
 		: x(X), y(Y)
 	{};
 

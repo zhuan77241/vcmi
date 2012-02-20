@@ -39,8 +39,10 @@ public:
 	ui32 readInt32() const;
 	
 	// Gets raw ui8 pointer of data. Do not delete that data. Ownership belongs to CMemoryStream.
-	ui8 * getRawData() const;
-	ui8 * getRawData(size_t seekPos) const;
+	const ui8 * getRawData() const;
+	const ui8 * getRawData(size_t seekPos) const;
+	ui8 * getRawData();
+	ui8 * getRawData(size_t seekPos);
 	std::string getDataAsString() const;
 };
 

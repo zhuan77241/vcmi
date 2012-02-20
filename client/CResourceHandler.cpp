@@ -80,9 +80,7 @@ IAnimation * CResourceHandler::createAnimation(const CDefFile * defFile, size_t 
 	}
 	else
 	{
-		// TODO: Direct based anim
-		IAnimation * anim;
-		return anim;
+		return new CDefAnimation(defFile);
 	}
 }
 
@@ -95,8 +93,8 @@ IAnimation * CResourceHandler::loadAnimation(const ResourceLocator & loc, size_t
 
 	if(boost::iequals(locInfo.getExtension(), ".DEF"))
 	{
-		CDefFile defFile(data);
-		return createAnimation(&defFile, group);
+		CDefFile * defFile = new CDefFile(data);
+		return createAnimation(defFile, group);
 	}
 
 	return NULL;

@@ -2,8 +2,10 @@
 #include "AnimationClasses.h"
 
 #include "ImageClasses.h"
+#include "SDL_Extensions.h"
 #include "../CGameInfo.h"
 #include "../CResourceHandler.h"
+#include "../../lib/CFileSystemHandler.h"
 
 std::map<size_t, size_t> IAnimation::getEntries() const
 {
@@ -13,6 +15,16 @@ std::map<size_t, size_t> IAnimation::getEntries() const
 si8 IAnimation::getLoadedGroup() const
 {
 	return loadedGroup;
+}
+
+void IAnimation::setPosition(const Point & pos)
+{
+	this->pos = pos;
+}
+
+Point IAnimation::getPosition() const
+{
+	return pos;
 }
 
 CImageBasedAnimation::CImageBasedAnimation(const CDefFile * defFile, size_t group /*= -1*/)
@@ -35,6 +47,8 @@ CImageBasedAnimation::CImageBasedAnimation(const CDefFile * defFile, size_t grou
 				images[group][frame] = CCS->resh->createSpriteFromDEF(defFile, frame, group);
 		}
 	}
+
+	delete defFile;
 }
 
 CImageBasedAnimation::CImageBasedAnimation(const CImageBasedAnimation & other)
@@ -100,14 +114,14 @@ void CImageBasedAnimation::forEach(std::function<void(IImage *)> func)
 
 void CImageBasedAnimation::draw(size_t frame, size_t group) const
 {
-	std::map<size_t, std::map<size_t, IImage *> >::const_iterator it = images.find(group);
+	group_itc it = images.find(group);
 	if(it != images.end())
 	{
-		std::map<size_t, IImage *> frames = it->second;
-		std::map<size_t, IImage *>::const_iterator it2 = frames.find(frame);
+		frame_itc it2 = it->second.find(frame);
 		
-		if(it2 != frames.end())
+		if(it2 != it->second.end())
 		{
+			it2->second->setPosition(pos);
 			it2->second->draw();
 		}
 	}
@@ -130,36 +144,212 @@ void CImageBasedAnimation::setGlowAnimation(EGlowAnimationType::EGlowAnimationTy
 	assert(0);
 }
 
-CDEFAnimation::CDEFAnimation(const CDefFile * defFile)
-	: def(defFile)
+void CImageBasedAnimation::flipHorizontal(bool flipped)
 {
+	assert(0);
 }
 
-void CDEFAnimation::draw() const
+CDefAnimation::CDefAnimation(const CDefFile * defFile)
+: def(defFile), flippedX(false), glowType(EGlowAnimationType::NONE), glowIntensity(0)
 {
-	/*switch(dest->format->BytesPerPixel)
+	entries = defFile->getEntries();
+	loadedGroup = -1;
+}
+
+CDefAnimation::~CDefAnimation()
+{
+	delete def;
+}
+
+IAnimation * CDefAnimation::clone() const
+{
+	return new CDefAnimation(*this);
+}
+
+void CDefAnimation::draw(size_t frame, size_t group) const
+{
+	switch(screen->format->BytesPerPixel)
 	{
-	case 2: return drawT<2>(dest, x, y,  destRect);
-	case 3: return drawT<3>(dest, x, y,  destRect);
-	case 4: return drawT<4>(dest, x, y,  destRect);
+	case 2: drawT<2>(frame, group, screen, pos.x, pos.y); break;
+	case 3: drawT<3>(frame, group, screen, pos.x, pos.y); break;
+	case 4: drawT<4>(frame, group, screen, pos.x, pos.y); break;
 	default:
-		tlog1 << (int)dest->format->BitsPerPixel << " bpp is not supported!!!\n";
-		return -1;
-	}*/
+		tlog1 << (int)screen->format->BitsPerPixel << " bpp is not supported!!!\n";
+	}
 }
 
-CAnimationHolder::CAnimationHolder(IAnimation * animation) : anim(animation), currentGroup(0), currentFrame(0)
+template<int bpp>
+void CDefAnimation::drawT(size_t frame, size_t group, SDL_Surface * surf, int posX, int posY) const
+{
+	ui8 segmentType, segmentLength;
+
+	size_t frameOffset = def->getOffset(group, frame);
+	const ui8 * framePtr = def->getData()->getRawData(frameOffset);
+	CDefFile::SpriteDef sprite = def->getSpriteDef(group, frame);
+	
+	const int rightMargin = sprite.fullWidth - sprite.width - sprite.leftMargin;
+	const int bottomMargin = sprite.fullHeight - sprite.height - sprite.topMargin;
+	const int spriteDefOffset = sizeof(CDefFile::SpriteDef);
+
+	//as it should be always in creature animations
+	assert(sprite.format == 1);
+	
+	int ftcp = 0;
+	if(sprite.topMargin > 0)
+	{
+		ftcp += sprite.fullWidth * sprite.topMargin;
+	}
+
+	for(size_t i = 0; i < sprite.height; i++)
+	{
+		def->getData()->setSeekPos(frameOffset + spriteDefOffset + 4 * i);
+		int baseOffset = spriteDefOffset + def->getData()->readInt32();
+		
+		// length of read segment
+		int totalRowLength = 0;
+
+		if(sprite.leftMargin > 0)
+		{
+			ftcp += sprite.leftMargin;
+		}
+
+		// Note: Bug fixed (Rev 2115): The implementation of omitting lines was false. 
+		// We've to calculate several things so not showing/putting pixels should suffice.
+
+		int yB = ftcp / sprite.fullWidth + posY;
+
+		do
+		{
+			segmentType = framePtr[baseOffset++];
+			segmentLength = framePtr[baseOffset++];
+
+			const int remainder = ftcp % sprite.fullWidth;
+			int xB = (flippedX ? sprite.fullWidth - remainder - 1 : remainder) + posX;
+
+			for(size_t k = 0; k <= segmentLength; k++)
+			{
+				if(xB >= 0 && xB < surf->w && yB >= 0 && yB < surf->h)
+				{
+					if(posX <= xB && posX + static_cast<int>(sprite.fullWidth) > xB 
+						&& posY <= yB && posY + static_cast<int>(sprite.fullHeight) > yB)
+					{
+						const ui8 colorNr = segmentType == 0xff ? framePtr[baseOffset + k] : segmentType;
+						putPixel<bpp>(surf, xB, yB, def->getColorFromPalette(colorNr), colorNr);
+					}
+				}
+
+				ftcp++;
+				if(flippedX)
+					xB--;
+				else
+					xB++;
+
+				if(segmentType == 0xFF && totalRowLength + k + 1 >= sprite.width)
+					break;
+			}
+			if(segmentType == 0xFF)
+			{
+				baseOffset += segmentLength + 1;
+			}
+
+			totalRowLength += segmentLength + 1;
+		} while(totalRowLength < static_cast<int>(sprite.width));
+		
+		if(rightMargin > 0)
+		{
+			ftcp += rightMargin;
+		}
+	}
+}
+
+template<int bpp>
+inline void CDefAnimation::putPixel(SDL_Surface * surf, int posX, int posY, SDL_Color color, ui8 colorNr) const
+{
+	if(colorNr == 0)
+		return;
+	
+	ui8 * p = reinterpret_cast<ui8 *>(surf->pixels) + posX * surf->format->BytesPerPixel 
+		+ posY * surf->pitch;
+	
+	// normal color
+	if(colorNr > 7)
+	{
+		ColorPutter<bpp, 0>::PutColor(p, color.r, color.g, color.b);
+	}
+	// selection highlight
+	else if((glowType != EGlowAnimationType::NONE) && (colorNr == 6 || colorNr == 7))
+	{
+		if(glowType == EGlowAnimationType::BLUE)
+			ColorPutter<bpp, 0>::PutColor(p, 0, glowIntensity, glowIntensity);
+		else
+			ColorPutter<bpp, 0>::PutColor(p, glowIntensity, glowIntensity, 0);
+	}
+	// selection highlight or transparent
+	else if(colorNr == 5) 
+	{
+		if(glowType == EGlowAnimationType::BLUE)
+			ColorPutter<bpp, 0>::PutColor(p, color.b, glowIntensity - color.g, glowIntensity - color.r);
+		else if(glowType == EGlowAnimationType::YELLOW)
+			ColorPutter<bpp, 0>::PutColor(p, glowIntensity - color.r, glowIntensity - color.g, color.b);
+	}
+	// shadow
+	else 
+	{
+		// determining transparency value, 255 or 0 should be already filtered
+		static ui8 colToAlpha[8] = { 255, 192, 128, 128, 128, 255, 128, 192 };
+		ui8 alpha = colToAlpha[colorNr];
+
+		if(bpp != 3 && bpp != 4)
+		{
+			ColorPutter<bpp, 0>::PutColor(p, 0, 0, 0, alpha);
+		}
+		else
+		{
+			p[0] = (p[0] * alpha) >> 8;
+			p[1] = (p[1] * alpha) >> 8;
+			p[2] = (p[2] * alpha) >> 8;
+		}
+	}
+	
+}
+
+void CDefAnimation::flipHorizontal(bool flipped)
+{
+	this->flippedX = flipped;
+}
+
+void CDefAnimation::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity)
+{
+	this->glowType = glowType;
+	this->glowIntensity = intensity;
+}
+
+void CDefAnimation::setAlpha(ui8 alpha)
+{
+	assert(0);
+}
+
+void CDefAnimation::recolorToPlayer(int player)
+{
+	assert(0);
+}
+
+CAnimationHolder::CAnimationHolder(IAnimation * animation) 
+	: anim(animation), currentGroup(0), currentFrame(0), glowType(EGlowAnimationType::NONE), 
+	glowIntensity(MIN_GLOW_INTENSITY)
 {
 	setGroup(0);
 }
 
-CAnimationHolder::CAnimationHolder(const ResourceIdentifier & identifier) : currentGroup(0), currentFrame(0)
+CAnimationHolder::CAnimationHolder(const ResourceIdentifier & identifier) 
+	: currentGroup(0), currentFrame(0), glowType(EGlowAnimationType::NONE), glowIntensity(MIN_GLOW_INTENSITY)
 {
 	anim = CCS->resh->getAnimation(identifier);
 	setGroup(0);
 }
 
-CAnimationHolder::CAnimationHolder(const ResourceIdentifier & identifier, size_t group, bool repeat /*= false*/) : currentGroup(group), currentFrame(0)
+CAnimationHolder::CAnimationHolder(const ResourceIdentifier & identifier, size_t group, bool repeat /*= false*/) 
+	: currentGroup(group), currentFrame(0), glowType(EGlowAnimationType::NONE), glowIntensity(MIN_GLOW_INTENSITY)
 {
 	anim = CCS->resh->getAnimation(identifier, group);
 	setGroup(group, repeat);
@@ -170,20 +360,30 @@ CAnimationHolder::~CAnimationHolder()
 	delete anim;
 }
 
+void CAnimationHolder::setPosition(const Point & pos)
+{
+	anim->setPosition(pos);
+}
+
+Point CAnimationHolder::getPosition() const
+{
+	return anim->getPosition();
+}
+
 void CAnimationHolder::setGroup(size_t group, bool repeat /*= false*/)
 {
 	this->repeat = repeat;
 	std::map<size_t, size_t> entries = anim->getEntries();
 
 	// check if the group is loaded
-	if (anim->getLoadedGroup() != group && anim->getLoadedGroup() != -1)
+	if(anim->getLoadedGroup() != group && anim->getLoadedGroup() != -1)
 	{
 		tlog2 << "Group Nr. " << group << " couldn't be loaded." << std::endl;
 		return;
 	}
 
 	// check if the group nr is defined in the animation format
-	if (vstd::contains(entries, group))
+	if(vstd::contains(entries, group))
 	{
 		frameCount = entries[group];
 		currentTime = 0.0;
@@ -197,14 +397,18 @@ void CAnimationHolder::setGroup(size_t group, bool repeat /*= false*/)
 
 void CAnimationHolder::update(double elapsedTime)
 {
-	// TODO: get frames per second default setting, affects animation playing speed
-	// standing anim group shouldn't be faster, etc... -> setGroup should set framesSecond (?)
-	static const double framesSecond = 1 / 6.;
+	updateFrame(elapsedTime);
+	updateGlowAnimation(elapsedTime);
+}
+
+void CAnimationHolder::updateFrame(double elapsedTime)
+{
+	static const double framesSecond = 1 / 6.; // TODO
 
 	currentFrame = static_cast<size_t>(currentTime / framesSecond);
-	if (currentFrame >= frameCount)
+	if(currentFrame >= frameCount)
 	{
-		if (repeat == true)
+		if(repeat == true)
 		{
 			currentTime -= static_cast<int>(currentTime / (frameCount * framesSecond)) * (frameCount * framesSecond);
 			currentFrame = static_cast<size_t>(currentTime / framesSecond);
@@ -212,8 +416,32 @@ void CAnimationHolder::update(double elapsedTime)
 		else
 			currentFrame = frameCount - 1;
 	}
-
 	currentTime += elapsedTime;
+}
+
+void CAnimationHolder::updateGlowAnimation(double elapsedTime)
+{
+	if(glowType != EGlowAnimationType::NONE)
+	{
+		const double glowDuration = 1.5;
+		double currentGlow = ((glowTime - (static_cast<int>(glowTime / glowDuration) * glowDuration)) 
+			/ glowDuration);
+		const ui8 glowSpan = 255 - MIN_GLOW_INTENSITY;
+
+		// Fade out
+		if(currentGlow < 0.5)
+		{
+			ui8 deltaGlowIntensity = static_cast<ui8>(glowSpan * currentGlow * 2);
+			anim->setGlowAnimation(glowType, 255 - deltaGlowIntensity);
+		}
+		// Fade in
+		else
+		{
+			ui8 deltaGlowIntensity = static_cast<ui8>(glowSpan * (currentGlow - 0.5) * 2);
+			anim->setGlowAnimation(glowType, MIN_GLOW_INTENSITY + deltaGlowIntensity);
+		}
+	}
+	glowTime += elapsedTime;
 }
 
 void CAnimationHolder::draw()
@@ -226,7 +454,8 @@ void CAnimationHolder::recolorToPlayer(int player)
 	anim->recolorToPlayer(player);
 }
 
-void CAnimationHolder::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
+void CAnimationHolder::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType)
 {
-
+	glowTime = 0.0;
+	this->glowType = glowType;
 }

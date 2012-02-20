@@ -101,7 +101,9 @@ public:
 	virtual void recolorToPlayer(int player) =0;
 
 	// Sets/Unsets the yellow or blue glow animation effect.
-	virtual void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha) =0;
+	virtual void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity) =0;
 
 	virtual void setAlpha(ui8 alpha) =0;
+
+	virtual void flipHorizontal(bool flipped) =0;
 };

@@ -66,26 +66,53 @@ public:
 	void draw(size_t frame, size_t group) const;
 
 	void recolorToPlayer(int player);
-	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha);
+	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity);
 	void setAlpha(ui8 alpha);
+	void flipHorizontal(bool flipped);
 };
 
-class CDEFAnimation : public IAnimation
+class CDefAnimation : public IAnimation
 {
 	const CDefFile * def;
+	bool flippedX;
+	EGlowAnimationType::EGlowAnimationType glowType;
+	ui8 glowIntensity;
+
+	template<int bpp>
+	inline void putPixel(SDL_Surface * surf, int posX, int posY, SDL_Color color, ui8 colorNr) const;
+
+	template<int bpp>
+	void drawT(size_t frame, size_t group, SDL_Surface * surf, int posX, int posY) const;
 
 public:
-	CDEFAnimation(const CDefFile * defFile);
+	CDefAnimation(const CDefFile * defFile);
+	~CDefAnimation();
 
-	void draw() const;
+	IAnimation * clone() const;
+
+	void draw(size_t frame, size_t group) const;
+
+	void flipHorizontal(bool flipped);
+	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity);
+	
+	// Not available here, do not call
+	void setAlpha(ui8 alpha);
+	void recolorToPlayer(int player);
 };
 
 class CAnimationHolder
 {
+	static const ui8 MIN_GLOW_INTENSITY = 50;
+
 	IAnimation * anim;
 	size_t currentGroup, currentFrame, frameCount;
-	double currentTime;
+	double currentTime, glowTime;
 	bool repeat;
+	EGlowAnimationType::EGlowAnimationType glowType;
+	ui8 glowIntensity;
+
+	void updateFrame(double elapsedTime);
+	void updateGlowAnimation(double elapsedTime);
 
 public:
 	CAnimationHolder(IAnimation * animation);
@@ -95,9 +122,12 @@ public:
 
 	void setGroup(size_t group, bool repeat = false);
 
+	void setPosition(const Point & pos);
+	Point getPosition() const;
+
 	void update(double elapsedTime);
 	void draw();
 
 	void recolorToPlayer(int player);
-	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha);
+	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType);
 };

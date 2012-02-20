@@ -85,38 +85,11 @@ CDefFile::CDefFile(const CMemoryStream * Data): palette(NULL)
 template<class ImageLoader>
 void CDefFile::loadFrame(size_t frame, size_t group, ImageLoader &loader) const
 {
-	std::map<size_t, std::vector <size_t> >::const_iterator it;
-	it = offset.find(group);
-	assert (it != offset.end());
+	const ui8 * framePtr = data->getRawData(getOffset(group, frame));
+	SpriteDef sprite = getSpriteDef(group, frame);
 
-	const ui8 * framePtr = data->getRawData(it->second[frame]);
-
-	struct SSpriteDef
-	{
-		ui32 size;
-		ui32 format;    // format in which pixel data is stored
-		ui32 fullWidth; // full width and height of frame, including borders
-		ui32 fullHeight;
-		ui32 width;     // width and height of pixel data, borders excluded
-		ui32 height;
-		si32 leftMargin;
-		si32 topMargin;
-	};
-
-	const SSpriteDef sd = * reinterpret_cast<const SSpriteDef *>(framePtr);
-	SSpriteDef sprite;
-
-	//sprite.size = SDL_SwapLE32(sd.size);//unused
-	sprite.format = SDL_SwapLE32(sd.format);
-	sprite.fullWidth = SDL_SwapLE32(sd.fullWidth);
-	sprite.fullHeight = SDL_SwapLE32(sd.fullHeight);
-	sprite.width = SDL_SwapLE32(sd.width);
-	sprite.height = SDL_SwapLE32(sd.height);
-	sprite.leftMargin = SDL_SwapLE32(sd.leftMargin);
-	sprite.topMargin = SDL_SwapLE32(sd.topMargin);
-
-	ui32 currentOffset = sizeof(SSpriteDef);
-	ui32 BaseOffset = sizeof(SSpriteDef);
+	ui32 currentOffset = sizeof(SpriteDef);
+	ui32 BaseOffset = sizeof(SpriteDef);
 
 	loader.init(Point(sprite.width, sprite.height),
 		Point(sprite.leftMargin, sprite.topMargin),
@@ -253,6 +226,44 @@ std::map<size_t, size_t> CDefFile::getEntries() const
 	return ret;
 }
 
+size_t CDefFile::getOffset(size_t group, size_t frame) const
+{
+	std::map<size_t, std::vector<size_t> >::const_iterator it = offset.find(group);
+	assert(it != offset.end());
+	assert(it->second.size() > frame);
+
+	return it->second[frame];
+}
+
+const CMemoryStream * CDefFile::getData() const
+{
+	return data;
+}
+
+CDefFile::SpriteDef CDefFile::getSpriteDef(size_t group, size_t frame) const
+{
+	const ui8 * framePtr = data->getRawData(getOffset(group, frame));
+
+	const SpriteDef sd = * reinterpret_cast<const SpriteDef *>(framePtr);
+	SpriteDef sprite;
+
+	//sprite.size = SDL_SwapLE32(sd.size);//unused
+	sprite.format = SDL_SwapLE32(sd.format);
+	sprite.fullWidth = SDL_SwapLE32(sd.fullWidth);
+	sprite.fullHeight = SDL_SwapLE32(sd.fullHeight);
+	sprite.width = SDL_SwapLE32(sd.width);
+	sprite.height = SDL_SwapLE32(sd.height);
+	sprite.leftMargin = SDL_SwapLE32(sd.leftMargin);
+	sprite.topMargin = SDL_SwapLE32(sd.topMargin);
+
+	return sprite;
+}
+
+SDL_Color CDefFile::getColorFromPalette(ui8 colorNr) const
+{
+	return palette[colorNr];
+}
+
 CSDLImage::CSDLImageLoader::CSDLImageLoader(CSDLImage * Img) : image(Img), lineStart(NULL), position(NULL)
 {
 }
@@ -365,16 +376,6 @@ void CSDLImage::draw() const
 	CSDL_Ext::blitSurface(surf, &sourceRect, screen, &destRect);
 }
 
-int CSDLImage::getWidth() const
-{
-	return fullSize.x;
-}
-
-int CSDLImage::getHeight() const
-{
-	return fullSize.y;
-}
-
 SDL_Surface * CSDLImage::getRawSurface() const
 {
 	return surf;
@@ -403,12 +404,17 @@ void CSDLImage::recolorToPlayer(int player)
 	}
 }
 
-void CSDLImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
+void CSDLImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity)
 {
 	assert(0);
 }
 
 void CSDLImage::setAlpha(ui8 alpha)
+{
+	assert(0);
+}
+
+void CSDLImage::flipHorizontal(bool flipped)
 {
 	assert(0);
 }
@@ -809,16 +815,6 @@ void CCompImage::blitBlock(ui8 type, ui8 size, ui8 *&data, ui8 * & dest, ui8 alp
 	}
 }
 
-int CCompImage::getWidth() const
-{
-	return fullSize.x;
-}
-
-int CCompImage::getHeight() const
-{
-	return fullSize.y;
-}
-
 void CCompImage::recolorToPlayer(int player)
 {
 	SDL_Color * pal = NULL;
@@ -842,7 +838,7 @@ void CCompImage::recolorToPlayer(int player)
 	}
 }
 
-void CCompImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
+void CCompImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity)
 {
 	assert(0);
 }
@@ -850,4 +846,9 @@ void CCompImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowTyp
 void CCompImage::setAlpha(ui8 alpha)
 {
 	this->alpha = alpha;
+}
+
+void CCompImage::flipHorizontal(bool flipped)
+{
+	assert(0);
 }
