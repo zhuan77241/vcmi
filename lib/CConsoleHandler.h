@@ -15,6 +15,9 @@
 /// the chosen color
 class DLL_LINKAGE CConsoleHandler
 {
+	/** Flag whether the console output should print colored text(default true). */
+	bool coloredConsoleOutput;
+
 public:
 	boost::function<void(const std::string &)> *cb; //function to be called when message is received
 	int curLvl; //logging level
@@ -23,7 +26,7 @@ public:
 	int run();
 	void setColor(int level); //sets color of text appropriate for given logging level
 
-	CConsoleHandler(); //c-tor
+	CConsoleHandler(bool coloredConsoleOutput = true); //c-tor
 	~CConsoleHandler(); //d-tor
 	void start(); //starts listening thread
 	void end(); //kills listening thread
@@ -31,7 +34,12 @@ public:
 	template<typename T> void print(const T &data, int lvl)
 	{
 		setColor(lvl);
-		std::cout << data << std::flush;
+
+		if(!coloredConsoleOutput && lvl >= 1 && lvl <= 3)
+			std::cerr << data << std::flush;
+		else
+			std::cout << data << std::flush;
+
 		setColor(-1);
 	}
 };

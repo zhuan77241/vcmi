@@ -3,32 +3,23 @@ BUILT_SOURCES = StdInc.h.gch
 StdInc.h.gch: StdInc.h
 	$(CXXCOMPILE) -c $<
 
-vcmiclient_LDADD = $(top_builddir)/lib/libvcmi.la @SDL_LIBS@ @FFMPEG_LIBS@ @BOOST_PROGRAM_OPTIONS_LIB@ @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @BOOST_IOSTREAMS_LIB@ -lz
+vcmiclient_LDADD = $(top_builddir)/lib/libvcmi.la @SDL_LIBS@ @FFMPEG_LIBS@ @BOOST_PROGRAM_OPTIONS_LIB@ @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @BOOST_IOSTREAMS_LIB@ -lz -lrt
 vcmiclient_CXXFLAGS = @SDL_CFLAGS@ @FFMPEG_CXXFLAGS@
 vcmiclient_LDFLAGS = -L$(top_builddir)/lib
 vcmiclient_SOURCES =  \
 	../CCallback.cpp \
-	../CCallback.h \
 	./BattleInterface/CBattleAnimations.cpp \
-	./BattleInterface/CBattleAnimations.h \
 	./BattleInterface/CBattleInterface.cpp \
-	./BattleInterface/CBattleInterface.h \
 	./BattleInterface/CBattleInterfaceClasses.cpp \
-	./BattleInterface/CBattleInterfaceClasses.h \
-	./BattleInterface/CCreatureAnimation.h \
 	./BattleInterface/CCreatureAnimation.cpp \
-	./UIFramework/CGuiHandler.cpp \
-	./UIFramework/CGuiHandler.h \
-	./UIFramework/CIntObject.cpp \
-	./UIFramework/CIntObject.h \
-	./UIFramework/CIntObjectClasses.cpp \
-	./UIFramework/CIntObjectClasses.h \
-	./UIFramework/Geometries.cpp \
-	./UIFramework/Geometries.h \
+	./UIFramework/AnimationClasses.cpp \
 	./UIFramework/CCursorHandler.cpp \
-	./UIFramework/CCursorHandler.h \
+	./UIFramework/CGuiHandler.cpp \
+	./UIFramework/CIntObject.cpp \
+	./UIFramework/CIntObjectClasses.cpp \
+	./UIFramework/Geometries.cpp \
+	./UIFramework/ImageClasses.cpp \
 	./UIFramework/SDL_Extensions.cpp \
-	./UIFramework/SDL_Extensions.h \
 	CAdvmapInterface.cpp \
 	CAdvmapInterface.h \
 	CAnimation.cpp \
@@ -61,6 +52,7 @@ vcmiclient_SOURCES =  \
 	CPlayerInterface.h \
 	CPreGame.cpp \
 	CPreGame.h \
+	CResourceHandler.cpp \
 	CSndHandler.cpp \
 	CSndHandler.h \
 	CSoundBase.h \

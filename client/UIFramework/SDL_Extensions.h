@@ -41,7 +41,7 @@ bool isItIn(const SDL_Rect * rect, int x, int y);
 
 namespace Colors
 {
-	SDL_Color createColor(int r, int g, int b, int a = 0);
+	SDL_Color createColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 0);
 
 	const SDL_Color	Jasmine = createColor(229, 215, 123, 0); // http://en.wikipedia.org/wiki/Jasmine_%28color%29
 	const SDL_Color Cornsilk = createColor(255, 243, 222, 0); // http://en.wikipedia.org/wiki/Shades_of_white
@@ -112,7 +112,9 @@ inline SDL_Rect genRect(const int & hh, const int & ww, const int & xx, const in
 //however here PutColor defined in SDL_Extensions.cpp, but used in CAnimation.cpp and CCreatureAnimation.cpp
 
 // Suppress boost warning for MSVC: no definition for inline function
-# pragma warning(disable: 4506)
+#ifdef _MSC_VER
+	#pragma warning(disable: 4506)
+#endif
 
 template<int bpp, int incrementPtr>
 struct ColorPutter

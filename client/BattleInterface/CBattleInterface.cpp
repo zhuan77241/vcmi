@@ -2548,7 +2548,7 @@ void CBattleInterface::showAliveStack(const CStack *stack, SDL_Surface * to)
 	if(creAnims.find(ID) == creAnims.end()) //eg. for summoned but not yet handled stacks
 		return;
 	const CCreature *creature = stack->getCreature();
-	SDL_Rect unitRect = {creAnims[ID]->pos.x, creAnims[ID]->pos.y, creAnims[ID]->fullWidth, creAnims[ID]->fullHeight};
+	SDL_Rect unitRect = {creAnims[ID]->pos.x, creAnims[ID]->pos.y, static_cast<ui16>(creAnims[ID]->fullWidth), static_cast<ui16>(creAnims[ID]->fullHeight)};
 	
 	int animType = creAnims[ID]->getType();
 
@@ -2670,8 +2670,16 @@ void CBattleInterface::showPieceOfWall(SDL_Surface * to, int hex, const std::vec
 		return;
 
 	using namespace boost::assign;
-	static const std::map<int, std::list<int> > hexToPart = map_list_of<int, std::list<int> >(12, list_of<int>(8)(1)(7))(45, list_of<int>(12)(6))
-		/*gate (78, list_of<int>(9))*/(101, list_of<int>(10))(118, list_of<int>(2))(165, list_of<int>(11))(186, list_of<int>(3));
+	#ifdef CPP11_USE_INITIALIZERS_LIST
+		//note - std::list<int> must be specified to avoid type deduction by gcc (may not work in other compilers)
+		static const std::map<int, std::list<int> > hexToPart = {
+			{12,  std::list<int>{8, 1, 7}}, {45,  std::list<int>{12, 6}},
+			{101, std::list<int>{10}},      {118, std::list<int>{2}},
+			{165, std::list<int>{11}},      {186, std::list<int>{3}}};
+	#else
+		static const std::map<int, std::list<int> > hexToPart = map_list_of<int, std::list<int> >(12, list_of<int>(8)(1)(7))(45, list_of<int>(12)(6))
+			(101, list_of<int>(10))(118, list_of<int>(2))(165, list_of<int>(11))(186, list_of<int>(3));
+	#endif
 
 	std::map<int, std::list<int> >::const_iterator it = hexToPart.find(hex);
 	if(it != hexToPart.end())

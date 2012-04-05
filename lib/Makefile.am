@@ -7,72 +7,32 @@ libvcmi_la_LIBADD = @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@
 libvcmi_la_CXXFLAGS = @SDL_CFLAGS@ -DVCMI_DLL
 libvcmi_la_SOURCES = \
 	BattleAction.cpp \
-	BattleAction.h \
+	BattleHex.cpp \
 	BattleState.cpp \
-	BattleState.h \
 	CArtHandler.cpp \
-	CArtHandler.h \
 	CBuildingHandler.cpp \
-	CBuildingHandler.h \
 	CCampaignHandler.cpp \
-	CCampaignHandler.h \
 	CConsoleHandler.cpp \
-	CConsoleHandler.h \
 	CCreatureHandler.cpp \
-	CCreatureHandler.h \
 	CCreatureSet.cpp \
-	CCreatureSet.h \
 	CDefObjInfoHandler.cpp \
-	CDefObjInfoHandler.h \
 	CFileSystemHandler.cpp \
-	CFileSystemHandler.h \
-	CFileUtility.cpp \
-	CFileUtility.h \
 	CGameInterface.cpp \
-	CGameInterface.h \
 	CGameState.cpp \
-	CGameState.h \
 	CGeneralTextHandler.cpp \
-	CGeneralTextHandler.h \
 	CHeroHandler.cpp \
-	CHeroHandler.h \
 	CLodHandler.cpp \
-	CLodHandler.h \
 	CLogger.cpp \
-	CLogger.h \
 	CMapInfo.cpp \
-	CMapInfo.h \
 	CObjectHandler.cpp \
-	CObjectHandler.h \
-	CObstacleInstance.h \
-	CSpellHandler.cpp \
-	CSpellHandler.h \
-	CScriptingModule.h \
-	CTownHandler.cpp \
-	CTownHandler.h \
-	CThreadHelper.cpp \
-	CThreadHelper.h \
-	CondSh.h \
 	Connection.cpp \
-	Connection.h \
-	ConstTransitivePtr.h \
+	CSpellHandler.cpp \
+	CTownHandler.cpp \
+	CThreadHelper.cpp \
 	HeroBonus.cpp \
-	HeroBonus.h \
 	IGameCallback.cpp \
-	IGameCallback.h \
-	IGameEventsReceiver.h \
-	Interprocess.h \
 	JsonNode.cpp \
-	JsonNode.h \
-	NetPacks.h \
+	map.cpp \
 	NetPacksLib.cpp \
 	ResourceSet.cpp \
-	ResourceSet.h \
-	RegisterTypes.h \
-	BattleHex.cpp \
-	BattleHex.h \
-	VCMIDirs.h \
-	VCMI_Lib.cpp \
-	VCMI_Lib.h \
-	map.cpp \
-	map.h
+	VCMI_Lib.cpp

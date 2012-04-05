@@ -1,7 +1,7 @@
 #pragma once
 
 // Standard include file
-// Contents: 
+// Contents:
 // Includes C/C++ libraries, STL libraries, IOStream and String libraries
 // Includes the most important boost headers
 // Defines the import + export, override and exception handling macros
@@ -66,13 +66,8 @@
 #include <boost/logic/tribool.hpp>
 #include <boost/program_options.hpp>
 #include <boost/thread.hpp>
-#include <boost/unordered_set.hpp>
 #include <boost/unordered_map.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
-
-using boost::shared_ptr;
-using boost::weak_ptr;
+#include <boost/unordered_set.hpp>
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -88,11 +83,15 @@ typedef boost::int32_t si32; //signed int 32 bits (4 bytes)
 typedef boost::int16_t si16; //signed int 16 bits (2 bytes)
 typedef boost::int8_t si8; //signed int 8 bits (1 byte)
 
+#ifdef __GNUC__
+#define GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__ )
+#endif
+
 // Import + Export macro declarations
 #ifdef _WIN32
 #define DLL_EXPORT __declspec(dllexport)
 #else
-#if defined(__GNUC__) && __GNUC__ >= 4
+#if defined(__GNUC__) && GCC_VERSION >= 400
 #define DLL_EXPORT	__attribute__ ((visibility("default")))
 #else
 #define DLL_EXPORT
@@ -102,7 +101,7 @@ typedef boost::int8_t si8; //signed int 8 bits (1 byte)
 #ifdef _WIN32
 #define DLL_IMPORT __declspec(dllimport)
 #else
-#if defined(__GNUC__) && __GNUC__ >= 4
+#if defined(__GNUC__) && GCC_VERSION >= 400
 #define DLL_IMPORT	__attribute__ ((visibility("default")))
 #else
 #define DLL_IMPORT
@@ -115,6 +114,25 @@ typedef boost::int8_t si8; //signed int 8 bits (1 byte)
 #define DLL_LINKAGE DLL_IMPORT
 #endif
 
+//defining available c++11 features
+
+//initialization lists - only gcc-4.4 or later
+#if defined(__GNUC__) && (GCC_VERSION >= 404)
+#define CPP11_USE_INITIALIZERS_LIST
+#endif
+
+//nullptr -  only msvc and gcc-4.6 or later, othervice define it  as NULL
+#if !defined(_MSC_VER) && !(defined(__GNUC__) && (GCC_VERSION >= 406))
+#define nullptr NULL
+#endif
+
+//override keyword - only msvc and gcc-4.7 or later.
+#if !defined(_MSC_VER) && !(defined(__GNUC__) && (GCC_VERSION >= 407))
+#define override
+#endif
+
+//workaround to support existing code
+#define OVERRIDE override
 
 //a normal std::map with a const operator[] for sanity
 template<typename KeyT, typename ValT>
@@ -125,10 +143,10 @@ public:
 	{
 		return find(key)->second;
 	}
-	ValT & operator[](KeyT key) 
+	ValT & operator[](KeyT key)
 	{
 		return static_cast<std::map<KeyT, ValT> &>(*this)[key];
-	}	
+	}
 	template <typename Handler> void serialize(Handler &h, const int version)
 	{
 		h & static_cast<std::map<KeyT, ValT> &>(*this);
@@ -139,35 +157,35 @@ namespace vstd
 {
 	//returns true if container c contains item i
 	template <typename Container, typename Item>
-	bool contains(const Container & c, const Item &i) 
+	bool contains(const Container & c, const Item &i)
 	{
 		return std::find(c.begin(),c.end(),i) != c.end();
 	}
 
 	//returns true if map c contains item i
 	template <typename V, typename Item, typename Item2>
-	bool contains(const std::map<Item,V> & c, const Item2 &i) 
+	bool contains(const std::map<Item,V> & c, const Item2 &i)
 	{
 		return c.find(i)!=c.end();
 	}
 
 	//returns true if bmap c contains item i
 	template <typename V, typename Item, typename Item2>
-	bool contains(const bmap<Item,V> & c, const Item2 &i) 
+	bool contains(const bmap<Item,V> & c, const Item2 &i)
 	{
 		return c.find(i)!=c.end();
 	}
 
 	//returns true if unordered set c contains item i
 	template <typename Item>
-	bool contains(const boost::unordered_set<Item> & c, const Item &i) 
+	bool contains(const boost::unordered_set<Item> & c, const Item &i)
 	{
 		return c.find(i)!=c.end();
 	}
 
 	//returns position of first element in vector c equal to s, if there is no such element, -1 is returned
 	template <typename T1, typename T2>
-	int find_pos(const std::vector<T1> & c, const T2 &s) 
+	int find_pos(const std::vector<T1> & c, const T2 &s)
 	{
 		for(size_t i=0; i < c.size(); ++i)
 			if(c[i] == s)
@@ -177,7 +195,7 @@ namespace vstd
 
 	//Func(T1,T2) must say if these elements matches
 	template <typename T1, typename T2, typename Func>
-	int find_pos(const std::vector<T1> & c, const T2 &s, const Func &f) 
+	int find_pos(const std::vector<T1> & c, const T2 &s, const Func &f)
 	{
 		for(size_t i=0; i < c.size(); ++i)
 			if(f(c[i],s))
@@ -187,7 +205,7 @@ namespace vstd
 
 	//returns iterator to the given element if present in container, end() if not
 	template <typename Container, typename Item>
-	typename Container::iterator find(Container & c, const Item &i) 
+	typename Container::iterator find(Container & c, const Item &i)
 	{
 		return std::find(c.begin(),c.end(),i);
 	}
@@ -201,7 +219,7 @@ namespace vstd
 
 	//removes element i from container c, returns false if c does not contain i
 	template <typename Container, typename Item>
-	typename Container::size_type operator-=(Container &c, const Item &i) 
+	typename Container::size_type operator-=(Container &c, const Item &i)
 	{
 		typename Container::iterator itr = find(c,i);
 		if(itr == c.end())
@@ -212,7 +230,7 @@ namespace vstd
 
 	//assigns greater of (a, b) to a and returns maximum of (a, b)
 	template <typename t1, typename t2>
-	t1 &amax(t1 &a, const t2 &b) 
+	t1 &amax(t1 &a, const t2 &b)
 	{
 		if(a >= b)
 			return a;
@@ -238,7 +256,7 @@ namespace vstd
 
 	//makes a to fit the range <b, c>
 	template <typename t1, typename t2, typename t3>
-	t1 &abetween(t1 &a, const t2 &b, const t3 &c) 
+	t1 &abetween(t1 &a, const t2 &b, const t3 &c)
 	{
 		amax(a,b);
 		amin(a,c);
@@ -247,18 +265,18 @@ namespace vstd
 
 	//checks if a is between b and c
 	template <typename t1, typename t2, typename t3>
-	bool isbetween(const t1 &a, const t2 &b, const t3 &c) 
+	bool isbetween(const t1 &a, const t2 &b, const t3 &c)
 	{
 		return a > b && a < c;
 	}
 
 	//checks if a is within b and c
 	template <typename t1, typename t2, typename t3>
-	bool iswithin(const t1 &a, const t2 &b, const t3 &c) 
+	bool iswithin(const t1 &a, const t2 &b, const t3 &c)
 	{
 		return a >= b && a <= c;
 	}
-	
+
 	template <typename t1, typename t2>
 	struct assigner
 	{
@@ -273,7 +291,7 @@ namespace vstd
 			op1 = op2;
 		}
 	};
-	
+
 	// Assigns value a2 to a1. The point of time of the real operation can be controlled
 	// with the () operator.
 	template <typename t1, typename t2>
@@ -283,25 +301,29 @@ namespace vstd
 	}
 
 	//deleted pointer and sets it to NULL
-	template <typename T> 
-	void clear_pointer(T* &ptr) 
+	template <typename T>
+	void clear_pointer(T* &ptr)
 	{
 		delete ptr;
 		ptr = NULL;
+	}
+
+	template<typename T>
+	std::unique_ptr<T> make_unique()
+	{
+		return std::unique_ptr<T>(new T());
+	}
+	template<typename T, typename Arg1>
+	std::unique_ptr<T> make_unique(Arg1&& arg1)
+	{
+		return std::unique_ptr<T>(new T(std::forward<Arg1>(arg1)));
 	}
 }
 using vstd::operator-=;
 
 // can be used for counting arrays
-template<typename T, size_t N> char (&_ArrayCountObj(const T (&)[N]))[N];  
+template<typename T, size_t N> char (&_ArrayCountObj(const T (&)[N]))[N];
 #define ARRAY_COUNT(arr)    (sizeof(_ArrayCountObj(arr)))
-
-//for explicit overrides
-#ifdef _MSC_VER
-#define OVERRIDE override
-#else
-#define OVERRIDE 	//is there any working counterpart?
-#endif
 
 //XXX pls dont - 'debug macros' are usually more trouble than it's worth
 #define HANDLE_EXCEPTION  \

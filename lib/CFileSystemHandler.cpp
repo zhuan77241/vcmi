@@ -6,6 +6,8 @@
 #include "vcmi_endian.h"
 #include "VCMIDirs.h"
 
+const int CLodResourceLoader::FCHUNK = 50000;
+
 ui8 CMemoryStream::readInt8() const
 {
 	assert(seekPos < length);
@@ -334,12 +336,12 @@ bool CLodResourceLoader::decompressFile(ui8 * in, int size, int realSize, ui8 *&
 	int chunkNumber = 0;
 	do
 	{
-		if(size < chunkNumber * LodDecompressHelper::FCHUNK)
+		if(size < chunkNumber * FCHUNK)
 			break;
-		strm.avail_in = std::min(LodDecompressHelper::FCHUNK, size - chunkNumber * LodDecompressHelper::FCHUNK);
+		strm.avail_in = std::min(FCHUNK, size - chunkNumber * FCHUNK);
 		if (strm.avail_in == 0)
 			break;
-		strm.next_in = in + chunkNumber * LodDecompressHelper::FCHUNK;
+		strm.next_in = in + chunkNumber * FCHUNK;
 
 		/* run inflate() on input until output buffer not full */
 		do

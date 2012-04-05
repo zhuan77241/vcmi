@@ -314,12 +314,24 @@ void CSoundHandler::soundFinishedCallback(int channel)
 CMusicHandler::CMusicHandler()
 {
 	// Map music IDs
-#define VCMI_MUSIC_ID(x) ( musicBase::x ,
-#define VCMI_MUSIC_FILE(y) y )
-	musics = map_list_of
-		VCMI_MUSIC_LIST;
-#undef VCMI_MUSIC_NAME
-#undef VCMI_MUSIC_FILE
+#ifdef CPP11_USE_INITIALIZERS_LIST
+
+	#define VCMI_MUSIC_ID(x) { musicBase::x ,
+	#define VCMI_MUSIC_FILE(y) y },
+		musics = { VCMI_MUSIC_LIST};
+	#undef VCMI_MUSIC_NAME
+	#undef VCMI_MUSIC_FILE
+
+#else
+
+	#define VCMI_MUSIC_ID(x) ( musicBase::x ,
+	#define VCMI_MUSIC_FILE(y) y )
+		musics = map_list_of
+			VCMI_MUSIC_LIST;
+	#undef VCMI_MUSIC_NAME
+	#undef VCMI_MUSIC_FILE
+
+#endif
 
 	// Vectors for helper
 	aiMusics += musicBase::AITheme0, musicBase::AITheme1, musicBase::AITheme2;

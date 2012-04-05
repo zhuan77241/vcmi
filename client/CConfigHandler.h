@@ -26,6 +26,13 @@ namespace config
 		std::string server, //server address (e.g. 127.0.0.1)
 			defaultPlayerAI, defaultBattleAI; //dll names
 		bool showFPS; //show/hide FPS counter
+
+		/**
+		 * Flag whether the console output should print colored text(default true).
+		 * May be set to false if the terminal/console can't interpret color codes.
+		 */
+		bool coloredConsoleOutput;
+
 		bool classicCreatureWindow;
 		bool autoSkip, oneGoodAI; //for AI testing purposes
 	};

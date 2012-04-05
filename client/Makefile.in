@@ -63,11 +63,13 @@ am_vcmiclient_OBJECTS = vcmiclient-CCallback.$(OBJEXT) \
 	vcmiclient-CBattleInterface.$(OBJEXT) \
 	vcmiclient-CBattleInterfaceClasses.$(OBJEXT) \
 	vcmiclient-CCreatureAnimation.$(OBJEXT) \
+	vcmiclient-AnimationClasses.$(OBJEXT) \
+	vcmiclient-CCursorHandler.$(OBJEXT) \
 	vcmiclient-CGuiHandler.$(OBJEXT) \
 	vcmiclient-CIntObject.$(OBJEXT) \
 	vcmiclient-CIntObjectClasses.$(OBJEXT) \
 	vcmiclient-Geometries.$(OBJEXT) \
-	vcmiclient-CCursorHandler.$(OBJEXT) \
+	vcmiclient-ImageClasses.$(OBJEXT) \
 	vcmiclient-SDL_Extensions.$(OBJEXT) \
 	vcmiclient-CAdvmapInterface.$(OBJEXT) \
 	vcmiclient-CAnimation.$(OBJEXT) \
@@ -82,7 +84,9 @@ am_vcmiclient_OBJECTS = vcmiclient-CCallback.$(OBJEXT) \
 	vcmiclient-Client.$(OBJEXT) vcmiclient-CMessage.$(OBJEXT) \
 	vcmiclient-CMT.$(OBJEXT) vcmiclient-CMusicHandler.$(OBJEXT) \
 	vcmiclient-CPlayerInterface.$(OBJEXT) \
-	vcmiclient-CPreGame.$(OBJEXT) vcmiclient-CSndHandler.$(OBJEXT) \
+	vcmiclient-CPreGame.$(OBJEXT) \
+	vcmiclient-CResourceHandler.$(OBJEXT) \
+	vcmiclient-CSndHandler.$(OBJEXT) \
 	vcmiclient-CSpellWindow.$(OBJEXT) \
 	vcmiclient-CVideoHandler.$(OBJEXT) \
 	vcmiclient-Graphics.$(OBJEXT) vcmiclient-GUIClasses.$(OBJEXT) \
@@ -278,32 +282,23 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 BUILT_SOURCES = StdInc.h.gch
-vcmiclient_LDADD = $(top_builddir)/lib/libvcmi.la @SDL_LIBS@ @FFMPEG_LIBS@ @BOOST_PROGRAM_OPTIONS_LIB@ @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @BOOST_IOSTREAMS_LIB@ -lz
+vcmiclient_LDADD = $(top_builddir)/lib/libvcmi.la @SDL_LIBS@ @FFMPEG_LIBS@ @BOOST_PROGRAM_OPTIONS_LIB@ @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @BOOST_IOSTREAMS_LIB@ -lz -lrt
 vcmiclient_CXXFLAGS = @SDL_CFLAGS@ @FFMPEG_CXXFLAGS@
 vcmiclient_LDFLAGS = -L$(top_builddir)/lib
 vcmiclient_SOURCES = \
 	../CCallback.cpp \
-	../CCallback.h \
 	./BattleInterface/CBattleAnimations.cpp \
-	./BattleInterface/CBattleAnimations.h \
 	./BattleInterface/CBattleInterface.cpp \
-	./BattleInterface/CBattleInterface.h \
 	./BattleInterface/CBattleInterfaceClasses.cpp \
-	./BattleInterface/CBattleInterfaceClasses.h \
-	./BattleInterface/CCreatureAnimation.h \
 	./BattleInterface/CCreatureAnimation.cpp \
-	./UIFramework/CGuiHandler.cpp \
-	./UIFramework/CGuiHandler.h \
-	./UIFramework/CIntObject.cpp \
-	./UIFramework/CIntObject.h \
-	./UIFramework/CIntObjectClasses.cpp \
-	./UIFramework/CIntObjectClasses.h \
-	./UIFramework/Geometries.cpp \
-	./UIFramework/Geometries.h \
+	./UIFramework/AnimationClasses.cpp \
 	./UIFramework/CCursorHandler.cpp \
-	./UIFramework/CCursorHandler.h \
+	./UIFramework/CGuiHandler.cpp \
+	./UIFramework/CIntObject.cpp \
+	./UIFramework/CIntObjectClasses.cpp \
+	./UIFramework/Geometries.cpp \
+	./UIFramework/ImageClasses.cpp \
 	./UIFramework/SDL_Extensions.cpp \
-	./UIFramework/SDL_Extensions.h \
 	CAdvmapInterface.cpp \
 	CAdvmapInterface.h \
 	CAnimation.cpp \
@@ -336,6 +331,7 @@ vcmiclient_SOURCES = \
 	CPlayerInterface.h \
 	CPreGame.cpp \
 	CPreGame.h \
+	CResourceHandler.cpp \
 	CSndHandler.cpp \
 	CSndHandler.h \
 	CSoundBase.h \
@@ -441,6 +437,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-AnimationClasses.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-CAdvmapInterface.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-CAnimation.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-CBattleAnimations.Po@am__quote@
@@ -465,6 +462,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-CMusicHandler.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-CPlayerInterface.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-CPreGame.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-CResourceHandler.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-CSndHandler.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-CSpellWindow.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-CVideoHandler.Po@am__quote@
@@ -472,6 +470,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-GUIClasses.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-Geometries.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-Graphics.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-ImageClasses.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-NetPacksClient.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-SDL_Extensions.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vcmiclient-mapHandler.Po@am__quote@
@@ -580,6 +579,38 @@ vcmiclient-CCreatureAnimation.obj: ./BattleInterface/CCreatureAnimation.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -c -o vcmiclient-CCreatureAnimation.obj `if test -f './BattleInterface/CCreatureAnimation.cpp'; then $(CYGPATH_W) './BattleInterface/CCreatureAnimation.cpp'; else $(CYGPATH_W) '$(srcdir)/./BattleInterface/CCreatureAnimation.cpp'; fi`
 
+vcmiclient-AnimationClasses.o: ./UIFramework/AnimationClasses.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -MT vcmiclient-AnimationClasses.o -MD -MP -MF $(DEPDIR)/vcmiclient-AnimationClasses.Tpo -c -o vcmiclient-AnimationClasses.o `test -f './UIFramework/AnimationClasses.cpp' || echo '$(srcdir)/'`./UIFramework/AnimationClasses.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/vcmiclient-AnimationClasses.Tpo $(DEPDIR)/vcmiclient-AnimationClasses.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='./UIFramework/AnimationClasses.cpp' object='vcmiclient-AnimationClasses.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -c -o vcmiclient-AnimationClasses.o `test -f './UIFramework/AnimationClasses.cpp' || echo '$(srcdir)/'`./UIFramework/AnimationClasses.cpp
+
+vcmiclient-AnimationClasses.obj: ./UIFramework/AnimationClasses.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -MT vcmiclient-AnimationClasses.obj -MD -MP -MF $(DEPDIR)/vcmiclient-AnimationClasses.Tpo -c -o vcmiclient-AnimationClasses.obj `if test -f './UIFramework/AnimationClasses.cpp'; then $(CYGPATH_W) './UIFramework/AnimationClasses.cpp'; else $(CYGPATH_W) '$(srcdir)/./UIFramework/AnimationClasses.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/vcmiclient-AnimationClasses.Tpo $(DEPDIR)/vcmiclient-AnimationClasses.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='./UIFramework/AnimationClasses.cpp' object='vcmiclient-AnimationClasses.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -c -o vcmiclient-AnimationClasses.obj `if test -f './UIFramework/AnimationClasses.cpp'; then $(CYGPATH_W) './UIFramework/AnimationClasses.cpp'; else $(CYGPATH_W) '$(srcdir)/./UIFramework/AnimationClasses.cpp'; fi`
+
+vcmiclient-CCursorHandler.o: ./UIFramework/CCursorHandler.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -MT vcmiclient-CCursorHandler.o -MD -MP -MF $(DEPDIR)/vcmiclient-CCursorHandler.Tpo -c -o vcmiclient-CCursorHandler.o `test -f './UIFramework/CCursorHandler.cpp' || echo '$(srcdir)/'`./UIFramework/CCursorHandler.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/vcmiclient-CCursorHandler.Tpo $(DEPDIR)/vcmiclient-CCursorHandler.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='./UIFramework/CCursorHandler.cpp' object='vcmiclient-CCursorHandler.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -c -o vcmiclient-CCursorHandler.o `test -f './UIFramework/CCursorHandler.cpp' || echo '$(srcdir)/'`./UIFramework/CCursorHandler.cpp
+
+vcmiclient-CCursorHandler.obj: ./UIFramework/CCursorHandler.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -MT vcmiclient-CCursorHandler.obj -MD -MP -MF $(DEPDIR)/vcmiclient-CCursorHandler.Tpo -c -o vcmiclient-CCursorHandler.obj `if test -f './UIFramework/CCursorHandler.cpp'; then $(CYGPATH_W) './UIFramework/CCursorHandler.cpp'; else $(CYGPATH_W) '$(srcdir)/./UIFramework/CCursorHandler.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/vcmiclient-CCursorHandler.Tpo $(DEPDIR)/vcmiclient-CCursorHandler.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='./UIFramework/CCursorHandler.cpp' object='vcmiclient-CCursorHandler.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -c -o vcmiclient-CCursorHandler.obj `if test -f './UIFramework/CCursorHandler.cpp'; then $(CYGPATH_W) './UIFramework/CCursorHandler.cpp'; else $(CYGPATH_W) '$(srcdir)/./UIFramework/CCursorHandler.cpp'; fi`
+
 vcmiclient-CGuiHandler.o: ./UIFramework/CGuiHandler.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -MT vcmiclient-CGuiHandler.o -MD -MP -MF $(DEPDIR)/vcmiclient-CGuiHandler.Tpo -c -o vcmiclient-CGuiHandler.o `test -f './UIFramework/CGuiHandler.cpp' || echo '$(srcdir)/'`./UIFramework/CGuiHandler.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/vcmiclient-CGuiHandler.Tpo $(DEPDIR)/vcmiclient-CGuiHandler.Po
@@ -644,21 +675,21 @@ vcmiclient-Geometries.obj: ./UIFramework/Geometries.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -c -o vcmiclient-Geometries.obj `if test -f './UIFramework/Geometries.cpp'; then $(CYGPATH_W) './UIFramework/Geometries.cpp'; else $(CYGPATH_W) '$(srcdir)/./UIFramework/Geometries.cpp'; fi`
 
-vcmiclient-CCursorHandler.o: ./UIFramework/CCursorHandler.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -MT vcmiclient-CCursorHandler.o -MD -MP -MF $(DEPDIR)/vcmiclient-CCursorHandler.Tpo -c -o vcmiclient-CCursorHandler.o `test -f './UIFramework/CCursorHandler.cpp' || echo '$(srcdir)/'`./UIFramework/CCursorHandler.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/vcmiclient-CCursorHandler.Tpo $(DEPDIR)/vcmiclient-CCursorHandler.Po
+vcmiclient-ImageClasses.o: ./UIFramework/ImageClasses.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -MT vcmiclient-ImageClasses.o -MD -MP -MF $(DEPDIR)/vcmiclient-ImageClasses.Tpo -c -o vcmiclient-ImageClasses.o `test -f './UIFramework/ImageClasses.cpp' || echo '$(srcdir)/'`./UIFramework/ImageClasses.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/vcmiclient-ImageClasses.Tpo $(DEPDIR)/vcmiclient-ImageClasses.Po
 @am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='./UIFramework/CCursorHandler.cpp' object='vcmiclient-CCursorHandler.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='./UIFramework/ImageClasses.cpp' object='vcmiclient-ImageClasses.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -c -o vcmiclient-CCursorHandler.o `test -f './UIFramework/CCursorHandler.cpp' || echo '$(srcdir)/'`./UIFramework/CCursorHandler.cpp
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -c -o vcmiclient-ImageClasses.o `test -f './UIFramework/ImageClasses.cpp' || echo '$(srcdir)/'`./UIFramework/ImageClasses.cpp
 
-vcmiclient-CCursorHandler.obj: ./UIFramework/CCursorHandler.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -MT vcmiclient-CCursorHandler.obj -MD -MP -MF $(DEPDIR)/vcmiclient-CCursorHandler.Tpo -c -o vcmiclient-CCursorHandler.obj `if test -f './UIFramework/CCursorHandler.cpp'; then $(CYGPATH_W) './UIFramework/CCursorHandler.cpp'; else $(CYGPATH_W) '$(srcdir)/./UIFramework/CCursorHandler.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/vcmiclient-CCursorHandler.Tpo $(DEPDIR)/vcmiclient-CCursorHandler.Po
+vcmiclient-ImageClasses.obj: ./UIFramework/ImageClasses.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -MT vcmiclient-ImageClasses.obj -MD -MP -MF $(DEPDIR)/vcmiclient-ImageClasses.Tpo -c -o vcmiclient-ImageClasses.obj `if test -f './UIFramework/ImageClasses.cpp'; then $(CYGPATH_W) './UIFramework/ImageClasses.cpp'; else $(CYGPATH_W) '$(srcdir)/./UIFramework/ImageClasses.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/vcmiclient-ImageClasses.Tpo $(DEPDIR)/vcmiclient-ImageClasses.Po
 @am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='./UIFramework/CCursorHandler.cpp' object='vcmiclient-CCursorHandler.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='./UIFramework/ImageClasses.cpp' object='vcmiclient-ImageClasses.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -c -o vcmiclient-CCursorHandler.obj `if test -f './UIFramework/CCursorHandler.cpp'; then $(CYGPATH_W) './UIFramework/CCursorHandler.cpp'; else $(CYGPATH_W) '$(srcdir)/./UIFramework/CCursorHandler.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -c -o vcmiclient-ImageClasses.obj `if test -f './UIFramework/ImageClasses.cpp'; then $(CYGPATH_W) './UIFramework/ImageClasses.cpp'; else $(CYGPATH_W) '$(srcdir)/./UIFramework/ImageClasses.cpp'; fi`
 
 vcmiclient-SDL_Extensions.o: ./UIFramework/SDL_Extensions.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -MT vcmiclient-SDL_Extensions.o -MD -MP -MF $(DEPDIR)/vcmiclient-SDL_Extensions.Tpo -c -o vcmiclient-SDL_Extensions.o `test -f './UIFramework/SDL_Extensions.cpp' || echo '$(srcdir)/'`./UIFramework/SDL_Extensions.cpp
@@ -931,6 +962,22 @@ vcmiclient-CPreGame.obj: CPreGame.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='CPreGame.cpp' object='vcmiclient-CPreGame.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -c -o vcmiclient-CPreGame.obj `if test -f 'CPreGame.cpp'; then $(CYGPATH_W) 'CPreGame.cpp'; else $(CYGPATH_W) '$(srcdir)/CPreGame.cpp'; fi`
+
+vcmiclient-CResourceHandler.o: CResourceHandler.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -MT vcmiclient-CResourceHandler.o -MD -MP -MF $(DEPDIR)/vcmiclient-CResourceHandler.Tpo -c -o vcmiclient-CResourceHandler.o `test -f 'CResourceHandler.cpp' || echo '$(srcdir)/'`CResourceHandler.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/vcmiclient-CResourceHandler.Tpo $(DEPDIR)/vcmiclient-CResourceHandler.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='CResourceHandler.cpp' object='vcmiclient-CResourceHandler.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -c -o vcmiclient-CResourceHandler.o `test -f 'CResourceHandler.cpp' || echo '$(srcdir)/'`CResourceHandler.cpp
+
+vcmiclient-CResourceHandler.obj: CResourceHandler.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -MT vcmiclient-CResourceHandler.obj -MD -MP -MF $(DEPDIR)/vcmiclient-CResourceHandler.Tpo -c -o vcmiclient-CResourceHandler.obj `if test -f 'CResourceHandler.cpp'; then $(CYGPATH_W) 'CResourceHandler.cpp'; else $(CYGPATH_W) '$(srcdir)/CResourceHandler.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/vcmiclient-CResourceHandler.Tpo $(DEPDIR)/vcmiclient-CResourceHandler.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='CResourceHandler.cpp' object='vcmiclient-CResourceHandler.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -c -o vcmiclient-CResourceHandler.obj `if test -f 'CResourceHandler.cpp'; then $(CYGPATH_W) 'CResourceHandler.cpp'; else $(CYGPATH_W) '$(srcdir)/CResourceHandler.cpp'; fi`
 
 vcmiclient-CSndHandler.o: CSndHandler.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(vcmiclient_CXXFLAGS) $(CXXFLAGS) -MT vcmiclient-CSndHandler.o -MD -MP -MF $(DEPDIR)/vcmiclient-CSndHandler.Tpo -c -o vcmiclient-CSndHandler.o `test -f 'CSndHandler.cpp' || echo '$(srcdir)/'`CSndHandler.cpp

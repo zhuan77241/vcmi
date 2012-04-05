@@ -156,12 +156,7 @@ protected:
 // Responsible for loading resources from lod archives
 class DLL_LINKAGE CLodResourceLoader : public IArchiveLoader
 {	
-	struct LodDecompressHelper
-	{
-		static const int DMHELP = 0;
-		static const int DMNOEXTRACTINGMASK = 1;
-		static const int FCHUNK = 50000;
-	};
+	static const int FCHUNK;
 	
 	bool decompressFile(ui8 * in, int size, int realSize, ui8 *& out, int wBits = 15);
 

@@ -140,6 +140,9 @@ LONG WINAPI onUnhandledException(EXCEPTION_POINTERS* exception)
 
 void CConsoleHandler::setColor(int level)
 {
+	if(!coloredConsoleOutput)
+		return;
+
 	TColor color;
 	switch(level)
 	{
@@ -207,7 +210,7 @@ int CConsoleHandler::run()
 	}
 	return -1;
 }
-CConsoleHandler::CConsoleHandler()
+CConsoleHandler::CConsoleHandler(bool coloredConsoleOutput /*= true*/)
 {
 #ifdef _WIN32
 	handleIn = GetStdHandle(STD_INPUT_HANDLE);
@@ -223,6 +226,7 @@ CConsoleHandler::CConsoleHandler()
 #endif
 	cb = new boost::function<void(const std::string &)>;
 	thread = NULL;
+	this->coloredConsoleOutput = coloredConsoleOutput;
 }
 CConsoleHandler::~CConsoleHandler()
 {

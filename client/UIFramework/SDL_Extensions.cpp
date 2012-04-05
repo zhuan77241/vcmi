@@ -19,7 +19,7 @@
  *
  */
 
-SDL_Color Colors::createColor(int r, int g, int b, int a /*= 0*/)
+SDL_Color Colors::createColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a /*= 0*/)
 {
 	SDL_Color temp = {r, g, b, a};
 	return temp;

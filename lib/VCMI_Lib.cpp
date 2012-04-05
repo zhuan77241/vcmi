@@ -166,7 +166,7 @@ void LibClasses::initFileSystem()
 	namespace gc = GameConstants;
 
 	const std::string dataPath = gc::DATA_DIR + gc::PATH_SEPARATOR + 
-		"DATA" + gc::PATH_SEPARATOR;
+		"Data" + gc::PATH_SEPARATOR;
 	
 	// Load DATA
 	filesystemh->addHandler(new CLodResourceLoader(dataPath + "H3bitmap.lod", "DATA/"));

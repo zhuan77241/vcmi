@@ -241,17 +241,19 @@ int main(int argc, char** argv)
 	putenv((char*)"SDL_VIDEO_WINDOW_POS");
 	putenv((char*)"SDL_VIDEO_CENTERED=1");
 
+	// Load the settings file
+	conf.init();
+	tlog0 <<"Loading settings" << std::endl;
+	tlog0 << NAME << std::endl;
+
+	// Initialize the console output and the logger
 	std::cout.flags(std::ios::unitbuf);
 	logfile = new std::ofstream((GVCMIDirs.UserPath + "/VCMI_Client_log.txt").c_str());
-	console = new CConsoleHandler;
+	console = new CConsoleHandler(conf.cc.coloredConsoleOutput);
 	*console->cb = boost::bind(&processCommand, _1);
 	console->start();
 	atexit(dispose);
 	tlog0 <<"Creating console and logfile" << std::endl;
-
-	conf.init();
-	tlog0 <<"Loading settings" << std::endl;
-	tlog0 << NAME << std::endl;
 
 	srand ( time(NULL) );
 	
