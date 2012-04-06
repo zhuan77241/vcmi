@@ -61,7 +61,7 @@ public:
 	~CImageBasedAnimation();
 
 	IAnimation * clone() const;
-	void forEach(boost::function<void(IImage *)> func);
+	void forEach(std::function<void(IImage *)> func);
 
 	void draw(size_t frame, size_t group) const;
 

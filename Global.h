@@ -39,6 +39,7 @@
 #include <set>
 #include <utility>
 #include <numeric>
+#include <functional>
 
 #include <iostream>
 #include <fstream>

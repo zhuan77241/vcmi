@@ -45,7 +45,6 @@ IImage * CResourceHandler::loadImage(const ResourceLocator & loc, size_t frame /
 	// get file info of the locator
 	CFileInfo locInfo(loc.resourceName);
 
-	IImage * img = NULL;
 	if(boost::iequals(locInfo.getExtension(), ".DEF"))
 	{
 		CDefFile defFile(data);

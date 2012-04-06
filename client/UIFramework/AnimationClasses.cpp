@@ -84,7 +84,7 @@ CImageBasedAnimation::~CImageBasedAnimation()
 	});
 }
 
-void CImageBasedAnimation::forEach(boost::function<void(IImage *)> func)
+void CImageBasedAnimation::forEach(std::function<void(IImage *)> func)
 {
 	// recolor all groups
 	if(loadedGroup == -1)

@@ -10,6 +10,13 @@
  *
  */
 
+/**
+ * The macro function STR adds to 'macro'-strings double-quotes so that they can be used by std::string types.
+ * The EXPAND function is needed otherwise not the contents of the macro will be surrounded by quotes but the identifier itself.
+ */
+#define STR_EXPAND(tok) #tok
+#define STR(tok) STR_EXPAND(tok)
+
 namespace GameConstants
 {
 	const std::string VCMI_VERSION = "VCMI 0.86e";
@@ -30,17 +37,17 @@ namespace GameConstants
 		#ifndef M_DATA_DIR
 		#error M_DATA_DIR undefined.
 		#else
-		const std::string DATA_DIR = M_DATA_DIR;
+		const std::string DATA_DIR = STR(M_DATA_DIR);
 		#endif
 		#ifndef M_BIN_DIR
 		#error M_BIN_DIR undefined.
 		#else
-		const std::string BIN_DIR = M_BIN_DIR;
+		const std::string BIN_DIR = STR(M_BIN_DIR);
 		#endif
 		#ifndef M_LIB_DIR
 		#error M_LIB_DIR undefined.
 		#else
-		const std::string LIB_DIR = M_LIB_DIR;
+		const std::string LIB_DIR = STR(M_LIB_DIR);
 		#endif
 		const std::string SERVER_NAME = "vcmiserver";
 		const std::string LIB_EXT = "so";
