@@ -97,7 +97,7 @@ AC_CHECK_HEADERS([boost/filesystem.hpp boost/algorithm/string.hpp boost/algorith
 # Checks for library functions.
 AC_CHECK_FUNCS([atexit memset pow select sqrt])
 
-CXXFLAGS="$CXXFLAGS -DM_DATA_DIR=\\\"\$(pkgdatadir)\\\" -DM_BIN_DIR=\\\"\$(bindir)\\\" -DM_LIB_DIR=\\\"\$(pkglibdir)\\\""
+CXXFLAGS="$CXXFLAGS -DM_DATA_DIR=\$(pkgdatadir) -DM_BIN_DIR=\$(bindir) -DM_LIB_DIR=\$(pkglibdir)"
 
 AC_SUBST(SDL_LIBS)
 AC_SUBST(SDL_CXXFLAGS)

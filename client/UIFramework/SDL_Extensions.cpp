@@ -538,7 +538,7 @@ void printToWR(const std::string & text, int x, int y, TTF_Font * font, SDL_Colo
 }
 
 // Vertical flip
-SDL_Surface * CSDL_Ext::rotate01(SDL_Surface * toRot)
+SDL_Surface * CSDL_Ext::rotate01(SDL_Surface * toRot, bool freeSurf /*= false*/)
 {
 	SDL_Surface * ret = SDL_ConvertSurface(toRot, toRot->format, toRot->flags);
 	const int bpl = ret->pitch;
@@ -554,11 +554,13 @@ SDL_Surface * CSDL_Ext::rotate01(SDL_Surface * toRot)
 		}
 	}
 
+	if (freeSurf)
+		SDL_FreeSurface(toRot);
 	return ret;
 }
 
 // Horizontal flip
-SDL_Surface * CSDL_Ext::hFlip(SDL_Surface * toRot)
+SDL_Surface * CSDL_Ext::hFlip(SDL_Surface * toRot, bool freeSurf /*= false*/)
 {
 	SDL_Surface * ret = SDL_ConvertSurface(toRot, toRot->format, toRot->flags);
 	int bpl = ret->pitch;
@@ -567,6 +569,8 @@ SDL_Surface * CSDL_Ext::hFlip(SDL_Surface * toRot)
 		memcpy((char *)ret->pixels + i*bpl, (char *)toRot->pixels + (ret->h-i-1)*bpl, bpl);
 	}
 
+	if (freeSurf)
+		SDL_FreeSurface(toRot);
 	return ret;
 };
 

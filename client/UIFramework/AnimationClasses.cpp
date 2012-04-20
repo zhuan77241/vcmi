@@ -4,8 +4,12 @@
 #include "ImageClasses.h"
 #include "SDL_Extensions.h"
 #include "../CGameInfo.h"
-#include "../CResourceHandler.h"
 #include "../../lib/CFileSystemHandler.h"
+
+IAnimation::IAnimation() : loadedGroup(0)
+{
+
+}
 
 std::map<size_t, size_t> IAnimation::getEntries() const
 {
@@ -27,30 +31,6 @@ Point IAnimation::getPosition() const
 	return pos;
 }
 
-CImageBasedAnimation::CImageBasedAnimation(const CDefFile * defFile, size_t group /*= -1*/)
-{
-	images.clear();
-	entries = defFile->getEntries();
-	loadedGroup = group;
-	
-	if (group == -1)
-	{
-		for(std::map<size_t, size_t>::iterator group = entries.begin(); group != entries.end(); ++group)
-			for(size_t frame = 0; frame < group->second; frame++)
-				images[group->first][frame] = CCS->resh->createSpriteFromDEF(defFile, frame, group->first);
-	}
-	else
-	{
-		if(vstd::contains(entries, group))
-		{
-			for(size_t frame = 0; frame < entries[group]; frame++)
-				images[group][frame] = CCS->resh->createSpriteFromDEF(defFile, frame, group);
-		}
-	}
-
-	delete defFile;
-}
-
 CImageBasedAnimation::CImageBasedAnimation(const CImageBasedAnimation & other)
 {
 	*this = other;
@@ -69,12 +49,8 @@ CImageBasedAnimation & CImageBasedAnimation::operator=(const CImageBasedAnimatio
 		}
 	}
 
+	IAnimation::operator=(other);
 	return *this;
-}
-
-IAnimation * CImageBasedAnimation::clone() const
-{
-	return new CImageBasedAnimation(*this);
 }
 
 CImageBasedAnimation::~CImageBasedAnimation()
@@ -82,6 +58,30 @@ CImageBasedAnimation::~CImageBasedAnimation()
 	forEach([](IImage * img) { 
 		delete img;
 	});
+}
+
+template<typename anim>
+void CImageBasedAnimation::constructImageBasedAnimation(const CDefFile * defFile, size_t group /*= -1*/)
+{
+	entries = defFile->getEntries();
+	loadedGroup = group;
+
+	if (group == -1)
+	{
+		for(std::map<size_t, size_t>::iterator group = entries.begin(); group != entries.end(); ++group)
+			for(size_t frame = 0; frame < group->second; frame++)
+				images[group->first][frame] = new anim(defFile, frame, group->first);
+	}
+	else
+	{
+		if(vstd::contains(entries, group))
+		{
+			for(size_t frame = 0; frame < entries[group]; frame++)
+				images[group][frame] = new anim(defFile, frame, group);
+		}
+	}
+
+	delete defFile;
 }
 
 void CImageBasedAnimation::forEach(std::function<void(IImage *)> func)
@@ -121,8 +121,10 @@ void CImageBasedAnimation::draw(size_t frame, size_t group) const
 		
 		if(it2 != it->second.end())
 		{
-			it2->second->setPosition(pos);
-			it2->second->draw();
+			IImage * img = it2->second;
+			img->setPosition(pos);
+			applyTransformations(img);
+			img->draw();
 		}
 	}
 }
@@ -134,23 +136,58 @@ void CImageBasedAnimation::recolorToPlayer(int player)
 	});
 }
 
-void CImageBasedAnimation::setAlpha(ui8 alpha)
+CCompAnimation::CCompAnimation(const CDefFile * defFile, size_t group /*= -1*/)
 {
-	assert(0);
+	constructImageBasedAnimation<CCompImage>(defFile, group);
 }
 
-void CImageBasedAnimation::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 alpha)
+IAnimation * CCompAnimation::clone() const
 {
-	assert(0);
+	return new CCompAnimation(*this);
 }
 
-void CImageBasedAnimation::flipHorizontal(bool flipped)
+void CCompAnimation::applyTransformations(IImage * img) const
 {
-	assert(0);
+	img->rotateFlip(rotateFlipType);
+	img->setGlowAnimation(glowType, glowIntensity);
+	img->setAlpha(alpha);
+}
+
+void CCompAnimation::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity)
+{
+	this->glowIntensity = alpha;
+	this->glowType = glowType;
+}
+
+void CCompAnimation::setAlpha(float alpha)
+{
+	this->alpha = alpha;
+}
+
+void CCompAnimation::rotateFlip(ERotateFlipType::ERotateFlipType type)
+{
+	this->rotateFlipType = type;
+}
+
+CSDLAnimation::CSDLAnimation(const CDefFile * defFile, size_t group /*= -1*/)
+{
+	constructImageBasedAnimation<CSDLImage>(defFile, group);
+}
+
+IAnimation * CSDLAnimation::clone() const
+{
+	return new CSDLAnimation(*this);
+}
+
+void CSDLAnimation::rotateFlip(ERotateFlipType::ERotateFlipType type)
+{
+	forEach([type](IImage * img) {
+		img->rotateFlip(type);
+	});
 }
 
 CDefAnimation::CDefAnimation(const CDefFile * defFile)
-: def(defFile), flippedX(false), glowType(EGlowAnimationType::NONE), glowIntensity(0)
+: def(defFile), playerColor(-1), glowType(EGlowAnimationType::NONE), glowIntensity(0), rotateFlipType(ERotateFlipType::NONE)
 {
 	entries = defFile->getEntries();
 	loadedGroup = -1;
@@ -173,8 +210,6 @@ void CDefAnimation::draw(size_t frame, size_t group) const
 	case 2: drawT<2>(frame, group, screen, pos.x, pos.y); break;
 	case 3: drawT<3>(frame, group, screen, pos.x, pos.y); break;
 	case 4: drawT<4>(frame, group, screen, pos.x, pos.y); break;
-	default:
-		tlog1 << (int)screen->format->BitsPerPixel << " bpp is not supported!!!\n";
 	}
 }
 
@@ -224,7 +259,8 @@ void CDefAnimation::drawT(size_t frame, size_t group, SDL_Surface * surf, int po
 			segmentLength = framePtr[baseOffset++];
 
 			const int remainder = ftcp % sprite.fullWidth;
-			int xB = (flippedX ? sprite.fullWidth - remainder - 1 : remainder) + posX;
+			int xB = (rotateFlipType == ERotateFlipType::ROTATENONE_FLIPX
+					? sprite.fullWidth - remainder - 1 : remainder) + posX;
 
 			for(size_t k = 0; k <= segmentLength; k++)
 			{
@@ -239,7 +275,7 @@ void CDefAnimation::drawT(size_t frame, size_t group, SDL_Surface * surf, int po
 				}
 
 				ftcp++;
-				if(flippedX)
+				if(rotateFlipType == ERotateFlipType::ROTATENONE_FLIPX)
 					xB--;
 				else
 					xB++;
@@ -313,9 +349,9 @@ inline void CDefAnimation::putPixel(SDL_Surface * surf, int posX, int posY, SDL_
 	
 }
 
-void CDefAnimation::flipHorizontal(bool flipped)
+void CDefAnimation::rotateFlip(ERotateFlipType::ERotateFlipType type)
 {
-	this->flippedX = flipped;
+	rotateFlipType = type;
 }
 
 void CDefAnimation::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity)
@@ -324,35 +360,12 @@ void CDefAnimation::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glow
 	this->glowIntensity = intensity;
 }
 
-void CDefAnimation::setAlpha(ui8 alpha)
-{
-	assert(0);
-}
-
-void CDefAnimation::recolorToPlayer(int player)
-{
-	assert(0);
-}
-
 CAnimationHolder::CAnimationHolder(IAnimation * animation) 
 	: anim(animation), currentGroup(0), currentFrame(0), glowType(EGlowAnimationType::NONE), 
 	glowIntensity(MIN_GLOW_INTENSITY)
 {
-	setGroup(0);
-}
-
-CAnimationHolder::CAnimationHolder(const ResourceIdentifier & identifier) 
-	: currentGroup(0), currentFrame(0), glowType(EGlowAnimationType::NONE), glowIntensity(MIN_GLOW_INTENSITY)
-{
-	anim = CCS->resh->getAnimation(identifier);
-	setGroup(0);
-}
-
-CAnimationHolder::CAnimationHolder(const ResourceIdentifier & identifier, size_t group, bool repeat /*= false*/) 
-	: currentGroup(group), currentFrame(0), glowType(EGlowAnimationType::NONE), glowIntensity(MIN_GLOW_INTENSITY)
-{
-	anim = CCS->resh->getAnimation(identifier, group);
-	setGroup(group, repeat);
+	size_t loadedGroup = animation->getLoadedGroup();
+	setGroup(loadedGroup == -1 ? 0 : loadedGroup);
 }
 
 CAnimationHolder::~CAnimationHolder()
@@ -458,4 +471,14 @@ void CAnimationHolder::setGlowAnimation(EGlowAnimationType::EGlowAnimationType g
 {
 	glowTime = 0.0;
 	this->glowType = glowType;
+}
+
+void CAnimationHolder::setAlpha(float alpha)
+{
+	anim->setAlpha(alpha);
+}
+
+void CAnimationHolder::rotateFlip(ERotateFlipType::ERotateFlipType type)
+{
+	anim->rotateFlip(type);
 }

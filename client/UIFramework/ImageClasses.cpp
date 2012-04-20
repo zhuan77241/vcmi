@@ -402,21 +402,18 @@ void CSDLImage::recolorToPlayer(int player)
 
 		SDL_SetColors(surf, palette, 224, 32);
 	}
+	else
+	{
+		tlog1 << "The method recolorToPlayer for standard SDL images cannot be applied to non 8-bit images." << std::endl;
+	}
 }
 
-void CSDLImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity)
+void CSDLImage::rotateFlip(ERotateFlipType::ERotateFlipType rotateType)
 {
-	assert(0);
-}
-
-void CSDLImage::setAlpha(ui8 alpha)
-{
-	assert(0);
-}
-
-void CSDLImage::flipHorizontal(bool flipped)
-{
-	assert(0);
+	if(rotateType == ERotateFlipType::ROTATENONE_FLIPX)
+		surf = CSDL_Ext::hFlip(surf, true);
+	else if (rotateType == ERotateFlipType::ROTATENONE_FLIPY)
+		surf = CSDL_Ext::rotate01(surf, true);
 }
 
 CCompImage::CCompImageLoader::CCompImageLoader(CCompImage * Img) : image(Img), position(NULL), entry(NULL),
@@ -601,7 +598,7 @@ CCompImage::CCompImageLoader::~CCompImageLoader()
 }
 
 CCompImage::CCompImage(const CDefFile * defFile, size_t frame, size_t group) 
-: surf(NULL), length(0), line(NULL), palette(NULL), alpha(0)
+: surf(NULL), length(0), line(NULL), palette(NULL), glowPalette(NULL), alpha(0), rotateFlipType(ERotateFlipType::NONE)
 {
 	CCompImageLoader loader(this);
 	defFile->loadFrame(frame, group, loader);
@@ -622,6 +619,10 @@ CCompImage & CCompImage::operator=(const CCompImage & cpy)
 	memcpy(reinterpret_cast<void *>(palette), 
 		reinterpret_cast<void *>(cpy.palette), 256 * sizeof(SDL_Color));
 
+	glowPalette = new SDL_Color[3];
+		memcpy(reinterpret_cast<void *>(glowPalette),
+			reinterpret_cast<void *>(cpy.glowPalette + 5 * sizeof(SDL_Color)), 3 * sizeof(SDL_Color));
+
 	surf = reinterpret_cast<ui8 *>(malloc(length));
 	memcpy(reinterpret_cast<void *>(surf), 
 		reinterpret_cast<void *>(cpy.surf), length);
@@ -641,18 +642,16 @@ IImage * CCompImage::clone() const
 CCompImage::~CCompImage()
 {
 	free(surf);
+	delete [] glowPalette;
 	delete [] line;
 	delete [] palette;
 }
 
 void CCompImage::draw() const
 {
-	ui8 rotation = 0; //TODO
-	//rotation == 1 = horizontal rotation
-	//rotation == 2 = vertical rotation
-	
 	if(!surf)
 		return;
+
 	Rect sourceRect(sprite);
 	
 	//TODO: rotation and scaling
@@ -664,9 +663,9 @@ void CCompImage::draw() const
 
 	//Starting point on SDL surface
 	Point dest(pos.x + sourceRect.x, pos.y + sourceRect.y);
-	if(rotation == 1)
+	if(rotateFlipType == ERotateFlipType::ROTATENONE_FLIPX)
 		dest.y += sourceRect.h;
-	if(rotation == 2)
+	else if(rotateFlipType == ERotateFlipType::ROTATENONE_FLIPY)
 		dest.x += sourceRect.w;
 
 	sourceRect -= sprite.topLeft();
@@ -698,7 +697,7 @@ void CCompImage::draw() const
 
 		//Calculate position for blitting: pixels + Y + X
 		ui8 * blitPos = reinterpret_cast<ui8 *>(screen->pixels);
-		if(rotation == 2)
+		if(rotateFlipType == ERotateFlipType::ROTATENONE_FLIPY)
 			blitPos += (static_cast<int>(dest.y) - currY) * screen->pitch;
 		else
 			blitPos += (static_cast<int>(dest.y) + currY) * screen->pitch;
@@ -708,7 +707,7 @@ void CCompImage::draw() const
 		while(currX + size < sourceRect.w)
 		{
 			//blit block, pointers will be modified if needed
-			blitBlockWithBpp(bpp, type, size, data, blitPos, alpha, rotation == 1);
+			blitBlockWithBpp(bpp, type, size, data, blitPos, alpha, rotateFlipType == ERotateFlipType::ROTATENONE_FLIPX);
 
 			currX += size;
 			type = *(data++);
@@ -716,7 +715,7 @@ void CCompImage::draw() const
 		}
 		//Blit last, semi-visible block
 		size = sourceRect.w - currX;
-		blitBlockWithBpp(bpp, type, size, data, blitPos, alpha, rotation == 1);
+		blitBlockWithBpp(bpp, type, size, data, blitPos, alpha, rotateFlipType == ERotateFlipType::ROTATENONE_FLIPX);
 	}
 }
 
@@ -840,7 +839,41 @@ void CCompImage::recolorToPlayer(int player)
 
 void CCompImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity)
 {
-	assert(0);
+	// Init the glow palette for the first time
+	if (glowPalette == NULL)
+	{
+		glowPalette = new SDL_Color[3];
+		memcpy(reinterpret_cast<void *>(glowPalette),
+			reinterpret_cast<void *>(palette + 5 * sizeof(SDL_Color)), 3 * sizeof(SDL_Color));
+	}
+
+	if (glowType == EGlowAnimationType::BLUE)
+	{
+		for (size_t i = 5; i < 8; ++i)
+		{
+			palette[i].r = (i == 5) ? glowPalette[i].b : 0;
+			palette[i].g = (i == 5) ? (intensity - glowPalette[i].g) : intensity;
+			palette[i].b = (i == 5) ? (intensity - glowPalette[i].r) : intensity;
+		}
+	}
+	else if (glowType == EGlowAnimationType::YELLOW)
+	{
+		for (size_t i = 5; i < 8; ++i)
+		{
+			palette[i].r = (i == 5) ? (intensity - glowPalette[i].r) : intensity;
+			palette[i].g = (i == 5) ? (intensity - glowPalette[i].g) : intensity;
+			palette[i].b = (i == 5) ? glowPalette[i].b : 0;
+		}
+	}
+	else if (glowType == EGlowAnimationType::NONE)
+	{
+		for (size_t i = 5; i < 8; ++i)
+		{
+			palette[i].r = glowPalette[i].r;
+			palette[i].g = glowPalette[i].g;
+			palette[i].b = glowPalette[i].b;
+		}
+	}
 }
 
 void CCompImage::setAlpha(ui8 alpha)
@@ -848,7 +881,7 @@ void CCompImage::setAlpha(ui8 alpha)
 	this->alpha = alpha;
 }
 
-void CCompImage::flipHorizontal(bool flipped)
+void CCompImage::rotateFlip(ERotateFlipType::ERotateFlipType rotateType)
 {
-	assert(0);
+	this->rotateFlipType = rotateType;
 }

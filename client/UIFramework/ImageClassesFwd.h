@@ -1,6 +1,8 @@
 #pragma once
 
+#include <typeinfo>
 #include "../../lib/CFileSystemHandlerFwd.h"
+
 
 /*
  * ImageClassesFwd.h, part of VCMI engine
@@ -32,12 +34,14 @@ namespace EGlowAnimationType
 	};
 }
 
-namespace EImageRotation
+/** Enumeration for the rotation/flip type. May be extended to support more rotations. */
+namespace ERotateFlipType
 {
-	enum EImageRotation
+	enum ERotateFlipType
 	{
-		Flip180X,
-		Flip180Y
+		NONE,
+		ROTATENONE_FLIPX,
+		ROTATENONE_FLIPY
 	};
 }
 
@@ -45,14 +49,11 @@ struct GraphicsSelector
 {
 	si8 frame, group;
 
-	// TODO: add imageTask queries, transformations,...
-	si8 playerColor;
-
-	GraphicsSelector(si8 Group = -1, si8 Frame = 0) : frame(Frame), group(Group), playerColor(-1) { };
+	GraphicsSelector(si8 Group = -1, si8 Frame = 0) : frame(Frame), group(Group) { };
 
 	inline bool operator==(GraphicsSelector const & other) const
 	{
-		return frame == other.frame && group == other.group && playerColor == other.playerColor;
+		return frame == other.frame && group == other.group;
 	}
 
 	inline friend std::size_t hash_value(GraphicsSelector const & p)
@@ -60,7 +61,6 @@ struct GraphicsSelector
 		std::size_t seed = 0;
 		boost::hash_combine(seed, p.frame);
 		boost::hash_combine(seed, p.group);
-		boost::hash_combine(seed, p.playerColor);
 
 		return seed;
 	}
@@ -97,13 +97,18 @@ struct GraphicsLocator : public ResourceLocator
 class ITransformational
 {
 public:
+	inline void printNotImplMsg(const std::string & methodName)
+	{
+		tlog1 << "Method " << methodName << " in class " << typeid(*this).name() << " not implemented." << std::endl;
+	}
+
 	// Change palette to specific player.
-	virtual void recolorToPlayer(int player) =0;
+	virtual void recolorToPlayer(int player) { printNotImplMsg("recolorToPlayer"); }
 
 	// Sets/Unsets the yellow or blue glow animation effect.
-	virtual void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity) =0;
+	virtual void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity) { printNotImplMsg("setGlowAnimation"); }
 
-	virtual void setAlpha(ui8 alpha) =0;
+	virtual void setAlpha(ui8 alpha) { printNotImplMsg("setAlpha"); }
 
-	virtual void flipHorizontal(bool flipped) =0;
+	virtual void rotateFlip(ERotateFlipType::ERotateFlipType type) { printNotImplMsg("rotateFlip"); }
 };

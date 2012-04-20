@@ -5,6 +5,8 @@
 class IAnimation;
 class IImage;
 class CDefFile;
+class CAnimationHolder;
+class CSDLImage;
 
 /*
  * CResourceHandler.h, part of VCMI engine
@@ -18,29 +20,24 @@ class CDefFile;
 
 class CResourceHandler
 {
-	IImage * loadImage(const ResourceLocator & loc, size_t frame = -1, size_t group = -1);
+	IImage * loadImage(const ResourceLocator & loc, size_t frame = -1, size_t group = -1, bool useSDL = false);
 	IAnimation * loadAnimation(const ResourceLocator & loc, size_t group = -1);
 
-	IImage * createImageFromFile(CMemoryStream * data, const std::string & imageType);
-
-	IImage * createSpriteFromDEF(const CDefFile * defFile, size_t frame, size_t group);
-
-	IAnimation * createAnimation(const CDefFile * defFile, size_t group = -1);
 public:
 
 	// Loads an image.
-	IImage * getImage(const ResourceIdentifier & identifier, bool fromBegin = false);
+	IImage * getImage(const ResourceIdentifier & identifier);
 	
 	// Loads a frame/sprite.
-	IImage * getImage(const ResourceIdentifier & identifier, size_t frame, size_t group, bool fromBegin = false);
+	IImage * getImage(const ResourceIdentifier & identifier, size_t frame, size_t group);
+
+	CSDLImage * getSurface(const ResourceIdentifier & identifier);
+
+	CSDLImage * getSurface(const ResourceIdentifier & identifier, size_t frame, size_t group);
 
 	// Loads complete animation(all groups).
-	IAnimation * getAnimation(const ResourceIdentifier & identifier, bool fromBegin = false);
+	CAnimationHolder * getAnimation(const ResourceIdentifier & identifier);
 
 	// Loads a group of an animation.
-	IAnimation * getAnimation(const ResourceIdentifier & identifier, size_t group, bool fromBegin = false);
-
-
-	// Needs access to: createSpriteFromDEF
-	friend class CImageBasedAnimation;
+	CAnimationHolder * getAnimation(const ResourceIdentifier & identifier, size_t group);
 };

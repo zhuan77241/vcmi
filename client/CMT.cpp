@@ -596,7 +596,7 @@ static void setScreenRes(int w, int h, int bpp, bool fullscreen)
 	
 	if(suggestedBpp != bpp)
 	{
-		tlog3 << "Warning: SDL says that the adjusted resolution of "  << bpp << "bpp wasn't available. Changed bpp to " << suggestedBpp << " ." << std::endl;
+		tlog0 << "Warning: SDL says that the adjusted resolution of "  << bpp << "bpp wasn't available. Changed bpp to " << suggestedBpp << "." << std::endl;
 	}
 
 	if(screen) //screen has been already initialized

@@ -135,9 +135,7 @@ public:
 	SDL_Surface * getRawSurface() const;
 
 	void recolorToPlayer(int player);
-	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity);
-	void setAlpha(ui8 alpha);
-	void flipHorizontal(bool flipped);
+	void rotateFlip(ERotateFlipType::ERotateFlipType rotateType);
 };
 
 /*
@@ -198,7 +196,12 @@ class CCompImage : public IImage
 	//palette
 	SDL_Color * palette;
 
+	//glow palette, original values (3 values, nr.5-7)
+	SDL_Color * glowPalette;
+
 	ui8 alpha;
+
+	ERotateFlipType::ERotateFlipType rotateFlipType;
 
 	//Used internally to blit one block of data
 	template<int bpp, int dir>
@@ -208,7 +211,6 @@ class CCompImage : public IImage
 public:
 	// Loads an sprite image from DEF file.
 	CCompImage(const CDefFile * defFile, size_t frame, size_t group);
-
 	CCompImage(const CCompImage & cpy);
 	CCompImage & operator=(const CCompImage & cpy);
 	~CCompImage();
@@ -220,5 +222,5 @@ public:
 	void recolorToPlayer(int player);
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity);
 	void setAlpha(ui8 alpha);
-	void flipHorizontal(bool flipped);
+	void rotateFlip(ERotateFlipType::ERotateFlipType rotateType);
 };

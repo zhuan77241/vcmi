@@ -15,6 +15,8 @@
 
 class IAnimation;
 class CImageBasedAnimation;
+class CCompAnimation;
+class CSDLAnimation;
 class CAnimationHolder;
 
 class IAnimation : public ITransformational
@@ -27,6 +29,7 @@ protected:
 	size_t loadedGroup;
 
 public:
+	IAnimation();
 	virtual ~IAnimation() { };
 	virtual IAnimation * clone() const =0;
 
@@ -44,6 +47,7 @@ public:
 
 class CImageBasedAnimation : public IAnimation
 {
+protected:
 	// images[group][frame], store objects with loaded images
 	std::map<size_t, std::map<size_t, IImage *> > images;
 
@@ -52,31 +56,56 @@ class CImageBasedAnimation : public IAnimation
 	typedef std::map<size_t, std::map<size_t, IImage *> >::const_iterator group_itc;
 	typedef std::map<size_t, IImage *>::const_iterator frame_itc;
 
-public:
-	// Loads frames of the specified group of an animation. Assign -1 to the second parameter 'group' to load all groups.
-	CImageBasedAnimation(const CDefFile * defFile, size_t group = -1);
-	
+	CImageBasedAnimation() { };
 	CImageBasedAnimation(const CImageBasedAnimation & other);
-	CImageBasedAnimation & operator=(const CImageBasedAnimation & other); 
+	CImageBasedAnimation & operator=(const CImageBasedAnimation & other);
 	~CImageBasedAnimation();
 
-	IAnimation * clone() const;
+	template<typename anim>
+	void constructImageBasedAnimation(const CDefFile * defFile, size_t group /*= -1*/);
+
+public:
 	void forEach(std::function<void(IImage *)> func);
 
+	virtual void applyTransformations(IImage * img) const { };
 	void draw(size_t frame, size_t group) const;
 
 	void recolorToPlayer(int player);
+};
+
+class CCompAnimation : public CImageBasedAnimation
+{
+	EGlowAnimationType::EGlowAnimationType glowType;
+	ui8 glowIntensity;
+	float alpha;
+	ERotateFlipType::ERotateFlipType rotateFlipType;
+
+public:
+	CCompAnimation(const CDefFile * defFile, size_t group = -1);
+	IAnimation * clone() const;
+
+	void applyTransformations(IImage * img) const;
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity);
-	void setAlpha(ui8 alpha);
-	void flipHorizontal(bool flipped);
+	void setAlpha(float alpha);
+	void rotateFlip(ERotateFlipType::ERotateFlipType type);
+};
+
+class CSDLAnimation : public CImageBasedAnimation
+{
+public:
+	CSDLAnimation(const CDefFile * defFile, size_t group = -1);
+	IAnimation * clone() const;
+
+	void rotateFlip(ERotateFlipType::ERotateFlipType type);
 };
 
 class CDefAnimation : public IAnimation
 {
 	const CDefFile * def;
-	bool flippedX;
+	int playerColor;
 	EGlowAnimationType::EGlowAnimationType glowType;
 	ui8 glowIntensity;
+	ERotateFlipType::ERotateFlipType rotateFlipType;
 
 	template<int bpp>
 	inline void putPixel(SDL_Surface * surf, int posX, int posY, SDL_Color color, ui8 colorNr) const;
@@ -85,19 +114,15 @@ class CDefAnimation : public IAnimation
 	void drawT(size_t frame, size_t group, SDL_Surface * surf, int posX, int posY) const;
 
 public:
-	CDefAnimation(const CDefFile * defFile);
+	explicit CDefAnimation(const CDefFile * defFile);
 	~CDefAnimation();
 
 	IAnimation * clone() const;
 
 	void draw(size_t frame, size_t group) const;
 
-	void flipHorizontal(bool flipped);
+	void rotateFlip(ERotateFlipType::ERotateFlipType type);
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity);
-	
-	// Not available here, do not call
-	void setAlpha(ui8 alpha);
-	void recolorToPlayer(int player);
 };
 
 class CAnimationHolder
@@ -115,9 +140,7 @@ class CAnimationHolder
 	void updateGlowAnimation(double elapsedTime);
 
 public:
-	CAnimationHolder(IAnimation * animation);
-	CAnimationHolder(const ResourceIdentifier & identifier);
-	CAnimationHolder(const ResourceIdentifier & identifier, size_t group, bool repeat = false);
+	explicit CAnimationHolder(IAnimation * animation);
 	~CAnimationHolder();
 
 	void setGroup(size_t group, bool repeat = false);
@@ -130,4 +153,6 @@ public:
 
 	void recolorToPlayer(int player);
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType);
+	void setAlpha(float alpha);
+	void rotateFlip(ERotateFlipType::ERotateFlipType type);
 };

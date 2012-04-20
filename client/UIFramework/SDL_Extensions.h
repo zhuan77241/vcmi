@@ -149,8 +149,8 @@ namespace CSDL_Ext
 	void SDL_PutPixelWithoutRefresh(SDL_Surface *ekran, const int & x, const int & y, const Uint8 & R, const Uint8 & G, const Uint8 & B, Uint8 A = 255);
 	void SDL_PutPixelWithoutRefreshIfInSurf(SDL_Surface *ekran, const int & x, const int & y, const Uint8 & R, const Uint8 & G, const Uint8 & B, Uint8 A = 255);
 
-	SDL_Surface * rotate01(SDL_Surface * toRot); //vertical flip
-	SDL_Surface * hFlip(SDL_Surface * toRot); //horizontal flip
+	SDL_Surface * rotate01(SDL_Surface * toRot, bool freeSurf = false); //vertical flip
+	SDL_Surface * hFlip(SDL_Surface * toRot, bool freeSurf = false); //horizontal flip
 	SDL_Surface * rotate02(SDL_Surface * toRot); //rotate 90 degrees left
 	SDL_Surface * rotate03(SDL_Surface * toRot); //rotate 180 degrees
 	SDL_Cursor * SurfaceToCursor(SDL_Surface *image, int hx, int hy); //creates cursor from bitmap

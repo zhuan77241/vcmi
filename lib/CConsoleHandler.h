@@ -34,12 +34,7 @@ public:
 	template<typename T> void print(const T &data, int lvl)
 	{
 		setColor(lvl);
-
-		if(!coloredConsoleOutput && lvl >= 1 && lvl <= 3)
-			std::cerr << data << std::flush;
-		else
-			std::cout << data << std::flush;
-
+		std::cout << data << std::flush;
 		setColor(-1);
 	}
 };

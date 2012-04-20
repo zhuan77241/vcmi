@@ -17479,7 +17479,7 @@ fi
 done
 
 
-CXXFLAGS="$CXXFLAGS -DM_DATA_DIR=\\\"\$(pkgdatadir)\\\" -DM_BIN_DIR=\\\"\$(bindir)\\\" -DM_LIB_DIR=\\\"\$(pkglibdir)\\\""
+CXXFLAGS="$CXXFLAGS -DM_DATA_DIR=\$(pkgdatadir) -DM_BIN_DIR=\$(bindir) -DM_LIB_DIR=\$(pkglibdir)"
 
 
 

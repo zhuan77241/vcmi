@@ -7,80 +7,74 @@
 #include "UIFramework/AnimationClasses.h"
 
 
-IImage * CResourceHandler::getImage(const ResourceIdentifier & identifier, size_t frame, size_t group, bool fromBegin /*= false*/)
+IImage * CResourceHandler::getImage(const ResourceIdentifier & identifier, size_t frame, size_t group)
 {
-	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier, fromBegin);
+	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier);
 	return loadImage(loc, frame, group);
 }
 
-IImage * CResourceHandler::getImage(const ResourceIdentifier & identifier, bool fromBegin /*= false*/)
+IImage * CResourceHandler::getImage(const ResourceIdentifier & identifier)
 {
-	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier, fromBegin);
+	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier);
 	return loadImage(loc);
 }
 
-IImage * CResourceHandler::createImageFromFile(CMemoryStream * data, const std::string & imageType)
+CSDLImage * CResourceHandler::getSurface(const ResourceIdentifier & identifier)
 {
-	// always use SDL when loading image from file 
-	return new CSDLImage(data, imageType);
+	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier);
+	return dynamic_cast<CSDLImage *>(loadImage(loc, -1, -1, true));
 }
 
-IImage * CResourceHandler::createSpriteFromDEF(const CDefFile * defFile, size_t frame, size_t group)
+CSDLImage * CResourceHandler::getSurface(const ResourceIdentifier & identifier, size_t frame, size_t group)
 {
-	// always use CCompImage when loading from DEF file
-	// we keep the possibility to load via SDL image
-	static const bool useComp = true;
-
-	if (useComp)
-		return new CCompImage(defFile, frame, group);
-
-	else
-		return new CSDLImage(defFile, frame, group);
+	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier);
+	return dynamic_cast<CSDLImage *>(loadImage(loc, frame, group, true));
 }
 
-IImage * CResourceHandler::loadImage(const ResourceLocator & loc, size_t frame /*= -1*/, size_t group /*= -1*/)
+IImage * CResourceHandler::loadImage(const ResourceLocator & loc, size_t frame /*= -1*/, size_t group /*= -1*/, bool useSDL /*= false*/)
 {
+	// Load data stream
 	CMemoryStream * data = CGI->filesystemh->getResource(loc);
 	
-	// get file info of the locator
+	// Get file info
 	CFileInfo locInfo(loc.resourceName);
 
+	// If the image should be used for image editing, then load it as SDL
+	if(useSDL)
+		return new CSDLImage(data, locInfo.getExtension());
+
+	// Requested image(sprite) resides in a .DEF file
 	if(boost::iequals(locInfo.getExtension(), ".DEF"))
 	{
+		// Construct the .DEF animation format
 		CDefFile defFile(data);
-		return createSpriteFromDEF(&defFile, frame, group);
+
+		// always use CCompImage when loading from DEF file
+		// we keep the possibility to load via SDL image
+		static const bool useComp = true;
+
+		if (useComp)
+			return new CCompImage(&defFile, frame, group);
+
+		else
+			return new CSDLImage(&defFile, frame, group);
 	}
 	else
 	{
-		return createImageFromFile(data, locInfo.getExtension());
+		return new CSDLImage(data, locInfo.getExtension());
 	}
 }
 
-IAnimation * CResourceHandler::getAnimation(const ResourceIdentifier & identifier, bool fromBegin /*= false*/)
+CAnimationHolder * CResourceHandler::getAnimation(const ResourceIdentifier & identifier)
 {
-	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier, fromBegin);
-	return loadAnimation(loc);
+	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier);
+	return new CAnimationHolder(loadAnimation(loc));
 }
 
-IAnimation * CResourceHandler::getAnimation(const ResourceIdentifier & identifier, size_t group, bool fromBegin /*= false*/)
+CAnimationHolder * CResourceHandler::getAnimation(const ResourceIdentifier & identifier, size_t group)
 {
-	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier, fromBegin);
-	return loadAnimation(loc, group);
-}
-
-IAnimation * CResourceHandler::createAnimation(const CDefFile * defFile, size_t group /*= -1*/)
-{
-	// use always image based animations for the moment;
-	static const bool useImageBased = true;
-
-	if (useImageBased)
-	{
-		return new CImageBasedAnimation(defFile, group);
-	}
-	else
-	{
-		return new CDefAnimation(defFile);
-	}
+	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier);
+	return new CAnimationHolder(loadAnimation(loc, group));
 }
 
 IAnimation * CResourceHandler::loadAnimation(const ResourceLocator & loc, size_t group /*= -1*/)
@@ -93,7 +87,21 @@ IAnimation * CResourceHandler::loadAnimation(const ResourceLocator & loc, size_t
 	if(boost::iequals(locInfo.getExtension(), ".DEF"))
 	{
 		CDefFile * defFile = new CDefFile(data);
-		return createAnimation(defFile, group);
+
+		// always use image based animations as cdef animation is deprecated
+		static const bool useImageBased = true;
+
+		if (useImageBased)
+		{
+			//TODO add support for VCMI anim format
+
+			// use ccomp animation for all def based animations
+			return new CCompAnimation(defFile, group);
+		}
+		else
+		{
+			return new CDefAnimation(defFile);
+		}
 	}
 
 	return NULL;
