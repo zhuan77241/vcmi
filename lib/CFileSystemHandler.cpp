@@ -592,15 +592,17 @@ EResType::EResType CFileSystemHandler::convertFileExtToResType(const std::string
 		return it->second;
 }
 
-CMemoryStream * CFileSystemHandler::getResource(const ResourceIdentifier & identifier, bool fromBegin /*=false */, bool unpackResource /*=false */)
+CMemoryStream * CFileSystemHandler::getResource(const ResourceIdentifier & identifier, bool unpackResource /*=false */)
 {
-	ResourceLocator loc = getResourceLocator(identifier, fromBegin);
+	ResourceLocator loc = getResourceLocator(identifier);
 	return getResource(loc, unpackResource);	
 }
 
 CMemoryStream * CFileSystemHandler::getResource(const ResourceLocator & locator, bool unpackResource /*= false*/)
 {
 	CMemoryStream * rslt = NULL;
+	if (locator.isEmpty())
+		return rslt;
 
 	// load it
 	mutex->lock();
@@ -613,7 +615,7 @@ CMemoryStream * CFileSystemHandler::getResource(const ResourceLocator & locator,
 	return rslt;
 }
 
-ResourceLocator CFileSystemHandler::getResourceLocator(const ResourceIdentifier & identifier, bool fromBegin /*= false*/)
+ResourceLocator CFileSystemHandler::getResourceLocator(const ResourceIdentifier & identifier)
 {
 	// check if resource is registered
 	if(resources.find(identifier) == resources.end())
@@ -627,21 +629,19 @@ ResourceLocator CFileSystemHandler::getResourceLocator(const ResourceIdentifier 
 	// and get the latest inserted resource with fromBegin=false
 	std::list<ResourceLocator> locators = resources.at(identifier);
 	ResourceLocator loc;
-	if (!fromBegin)
-		return locators.back();
-	else 
-		return locators.front();
+
+	return locators.front();
 }
 
-std::string CFileSystemHandler::getResourceAsString(const ResourceIdentifier & identifier, bool fromBegin /*=false */)
+std::string CFileSystemHandler::getResourceAsString(const ResourceIdentifier & identifier)
 {
-	CMemoryStream * memStream = getResource(identifier, fromBegin);
+	CMemoryStream * memStream = getResource(identifier);
 	return memStream->getDataAsString();
 }
 
-CMemoryStream * CFileSystemHandler::getUnpackedResource(const ResourceIdentifier & identifier, bool fromBegin /*=false */)
+CMemoryStream * CFileSystemHandler::getUnpackedResource(const ResourceIdentifier & identifier)
 {
-	return getResource(identifier, fromBegin, true);
+	return getResource(identifier, true);
 }
 
 //It is possible to use uncompress function from zlib but we  need to know decompressed size (not present in compressed data)

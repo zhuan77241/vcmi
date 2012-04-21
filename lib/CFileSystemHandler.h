@@ -229,19 +229,19 @@ public:
 
 	// Get a resource as a flat, binary stream(shared) with the given identifier and a flag, whether to load
 	// resource from LOD/first loaded or last inserted resource
-	CMemoryStream * getResource(const ResourceIdentifier & identifier, bool fromBegin = false, bool unpackResource = false);
+	CMemoryStream * getResource(const ResourceIdentifier & identifier, bool unpackResource = false);
 	
 	CMemoryStream * getResource(const ResourceLocator & locator, bool unpackResource = false);
 
-	ResourceLocator getResourceLocator(const ResourceIdentifier & identifier, bool fromBegin = false);
+	ResourceLocator getResourceLocator(const ResourceIdentifier & identifier);
 
 	// Get a resource as a string(not shared, can be easily altered) with the given identifier and a flag, 
 	// whether to load resource from LOD/first loaded or last inserted resource
-	std::string getResourceAsString(const ResourceIdentifier & identifier, bool fromBegin = false);
+	std::string getResourceAsString(const ResourceIdentifier & identifier);
 
 	// Gets a resource unpacked with the given identifier and a flag,
 	// whether to load resource from LOD/first loaded or last inserted resource
-	CMemoryStream * getUnpackedResource(const ResourceIdentifier & identifier, bool fromBegin = false);
+	CMemoryStream * getUnpackedResource(const ResourceIdentifier & identifier);
 
 	void writeMemoryStreamToFile(CMemoryStream * memStream, const std::string & destFile) const;
 

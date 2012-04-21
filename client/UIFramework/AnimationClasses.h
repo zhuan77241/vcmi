@@ -77,7 +77,7 @@ class CCompAnimation : public CImageBasedAnimation
 {
 	EGlowAnimationType::EGlowAnimationType glowType;
 	ui8 glowIntensity;
-	float alpha;
+	ui8 alpha;
 	ERotateFlipType::ERotateFlipType rotateFlipType;
 
 public:
@@ -86,7 +86,7 @@ public:
 
 	void applyTransformations(IImage * img) const;
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity);
-	void setAlpha(float alpha);
+	void setAlpha(ui8 alpha);
 	void rotateFlip(ERotateFlipType::ERotateFlipType type);
 };
 
@@ -153,6 +153,6 @@ public:
 
 	void recolorToPlayer(int player);
 	void setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType);
-	void setAlpha(float alpha);
+	void setAlpha(ui8 alpha);
 	void rotateFlip(ERotateFlipType::ERotateFlipType type);
 };

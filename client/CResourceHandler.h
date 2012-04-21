@@ -26,18 +26,18 @@ class CResourceHandler
 public:
 
 	// Loads an image.
-	IImage * getImage(const ResourceIdentifier & identifier);
+	IImage * getImage(const std::string & name);
 	
 	// Loads a frame/sprite.
-	IImage * getImage(const ResourceIdentifier & identifier, size_t frame, size_t group);
+	IImage * getImage(const std::string & name, size_t frame, size_t group);
 
-	CSDLImage * getSurface(const ResourceIdentifier & identifier);
+	CSDLImage * getSurface(const std::string & name);
 
-	CSDLImage * getSurface(const ResourceIdentifier & identifier, size_t frame, size_t group);
+	CSDLImage * getSurface(const std::string & name, size_t frame, size_t group);
 
 	// Loads complete animation(all groups).
-	CAnimationHolder * getAnimation(const ResourceIdentifier & identifier);
+	CAnimationHolder * getAnimation(const std::string & name);
 
 	// Loads a group of an animation.
-	CAnimationHolder * getAnimation(const ResourceIdentifier & identifier, size_t group);
+	CAnimationHolder * getAnimation(const std::string & name, size_t group);
 };

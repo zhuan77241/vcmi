@@ -7,27 +7,27 @@
 #include "UIFramework/AnimationClasses.h"
 
 
-IImage * CResourceHandler::getImage(const ResourceIdentifier & identifier, size_t frame, size_t group)
+IImage * CResourceHandler::getImage(const std::string & name, size_t frame, size_t group)
 {
-	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier);
+	ResourceLocator loc = CGI->filesystemh->getResourceLocator(ResourceIdentifier(name, EResType::ANIMATION));
 	return loadImage(loc, frame, group);
 }
 
-IImage * CResourceHandler::getImage(const ResourceIdentifier & identifier)
+IImage * CResourceHandler::getImage(const std::string & name)
 {
-	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier);
+	ResourceLocator loc = CGI->filesystemh->getResourceLocator(ResourceIdentifier(name, EResType::GRAPHICS));
 	return loadImage(loc);
 }
 
-CSDLImage * CResourceHandler::getSurface(const ResourceIdentifier & identifier)
+CSDLImage * CResourceHandler::getSurface(const std::string & name)
 {
-	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier);
+	ResourceLocator loc = CGI->filesystemh->getResourceLocator(ResourceIdentifier(name, EResType::GRAPHICS));
 	return dynamic_cast<CSDLImage *>(loadImage(loc, -1, -1, true));
 }
 
-CSDLImage * CResourceHandler::getSurface(const ResourceIdentifier & identifier, size_t frame, size_t group)
+CSDLImage * CResourceHandler::getSurface(const std::string & name, size_t frame, size_t group)
 {
-	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier);
+	ResourceLocator loc = CGI->filesystemh->getResourceLocator(ResourceIdentifier(name, EResType::ANIMATION));
 	return dynamic_cast<CSDLImage *>(loadImage(loc, frame, group, true));
 }
 
@@ -36,6 +36,10 @@ IImage * CResourceHandler::loadImage(const ResourceLocator & loc, size_t frame /
 	// Load data stream
 	CMemoryStream * data = CGI->filesystemh->getResource(loc);
 	
+	// Return NULL if the resource couldn't been loaded.
+	if (!data)
+		return NULL;
+
 	// Get file info
 	CFileInfo locInfo(loc.resourceName);
 
@@ -65,21 +69,25 @@ IImage * CResourceHandler::loadImage(const ResourceLocator & loc, size_t frame /
 	}
 }
 
-CAnimationHolder * CResourceHandler::getAnimation(const ResourceIdentifier & identifier)
+CAnimationHolder * CResourceHandler::getAnimation(const std::string & name)
 {
-	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier);
+	ResourceLocator loc = CGI->filesystemh->getResourceLocator(ResourceIdentifier(name, EResType::ANIMATION));
 	return new CAnimationHolder(loadAnimation(loc));
 }
 
-CAnimationHolder * CResourceHandler::getAnimation(const ResourceIdentifier & identifier, size_t group)
+CAnimationHolder * CResourceHandler::getAnimation(const std::string & name, size_t group)
 {
-	ResourceLocator loc = CGI->filesystemh->getResourceLocator(identifier);
+	ResourceLocator loc = CGI->filesystemh->getResourceLocator(ResourceIdentifier(name, EResType::ANIMATION));
 	return new CAnimationHolder(loadAnimation(loc, group));
 }
 
 IAnimation * CResourceHandler::loadAnimation(const ResourceLocator & loc, size_t group /*= -1*/)
 {
 	CMemoryStream * data = CGI->filesystemh->getResource(loc);
+
+	// Return NULL if the resource couldn't been loaded.
+	if (!data)
+		return NULL;
 
 	// get file info of the locator
 	CFileInfo locInfo(loc.resourceName);

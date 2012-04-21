@@ -136,7 +136,8 @@ void CImageBasedAnimation::recolorToPlayer(int player)
 	});
 }
 
-CCompAnimation::CCompAnimation(const CDefFile * defFile, size_t group /*= -1*/)
+CCompAnimation::CCompAnimation(const CDefFile * defFile, size_t group /*= -1*/) : glowType(EGlowAnimationType::NONE),
+		glowIntensity(0), alpha(255), rotateFlipType(ERotateFlipType::NONE)
 {
 	constructImageBasedAnimation<CCompImage>(defFile, group);
 }
@@ -155,11 +156,11 @@ void CCompAnimation::applyTransformations(IImage * img) const
 
 void CCompAnimation::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity)
 {
-	this->glowIntensity = alpha;
+	this->glowIntensity = intensity;
 	this->glowType = glowType;
 }
 
-void CCompAnimation::setAlpha(float alpha)
+void CCompAnimation::setAlpha(ui8 alpha)
 {
 	this->alpha = alpha;
 }
@@ -473,7 +474,7 @@ void CAnimationHolder::setGlowAnimation(EGlowAnimationType::EGlowAnimationType g
 	this->glowType = glowType;
 }
 
-void CAnimationHolder::setAlpha(float alpha)
+void CAnimationHolder::setAlpha(ui8 alpha)
 {
 	anim->setAlpha(alpha);
 }

@@ -93,17 +93,5 @@ struct DLL_LINKAGE ResourceLocator
 	ResourceLocator(IResourceLoader * Loader, const std::string & ResourceName) 
 		: loader(Loader), resourceName(ResourceName) { };
 
-	/*inline bool operator==(ResourceLocator const & other) const
-	{
-		return loader == other.loader && resourceName == other.resourceName;
-	}
-
-	inline friend std::size_t hash_value(ResourceLocator const & p)
-	{
-		std::size_t seed = 0;
-		boost::hash_combine(seed, p.loader);
-		boost::hash_combine(seed, p.resourceName);
-
-		return seed;
-	}*/
+	bool isEmpty() const { return loader == NULL || resourceName == ""; }
 };

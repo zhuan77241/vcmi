@@ -410,10 +410,11 @@ void CSDLImage::recolorToPlayer(int player)
 
 void CSDLImage::rotateFlip(ERotateFlipType::ERotateFlipType rotateType)
 {
+	//TODO SDL_Ext method names have to be changed. hFlip to vFlip.
 	if(rotateType == ERotateFlipType::ROTATENONE_FLIPX)
-		surf = CSDL_Ext::hFlip(surf, true);
-	else if (rotateType == ERotateFlipType::ROTATENONE_FLIPY)
 		surf = CSDL_Ext::rotate01(surf, true);
+	else if (rotateType == ERotateFlipType::ROTATENONE_FLIPY)
+		surf = CSDL_Ext::hFlip(surf, true);
 }
 
 CCompImage::CCompImageLoader::CCompImageLoader(CCompImage * Img) : image(Img), position(NULL), entry(NULL),
@@ -598,7 +599,7 @@ CCompImage::CCompImageLoader::~CCompImageLoader()
 }
 
 CCompImage::CCompImage(const CDefFile * defFile, size_t frame, size_t group) 
-: surf(NULL), length(0), line(NULL), palette(NULL), glowPalette(NULL), alpha(0), rotateFlipType(ERotateFlipType::NONE)
+: surf(NULL), length(0), line(NULL), palette(NULL), glowPalette(NULL), alpha(255), rotateFlipType(ERotateFlipType::NONE)
 {
 	CCompImageLoader loader(this);
 	defFile->loadFrame(frame, group, loader);
