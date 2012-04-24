@@ -6,7 +6,7 @@
 #include "../CGameInfo.h"
 #include "../../lib/CFileSystemHandler.h"
 
-IAnimation::IAnimation() : loadedGroup(0)
+IAnimation::IAnimation() : loadedGroup(boost::none)
 {
 
 }
@@ -16,7 +16,7 @@ std::map<size_t, size_t> IAnimation::getEntries() const
 	return entries;
 }
 
-si8 IAnimation::getLoadedGroup() const
+boost::optional<size_t> IAnimation::getLoadedGroup() const
 {
 	return loadedGroup;
 }
@@ -61,23 +61,25 @@ CImageBasedAnimation::~CImageBasedAnimation()
 }
 
 template<typename anim>
-void CImageBasedAnimation::constructImageBasedAnimation(const CDefFile * defFile, size_t group /*= -1*/)
+void CImageBasedAnimation::constructImageBasedAnimation(const CDefFile * defFile, boost::optional<size_t> group /*= boost::none*/)
 {
 	entries = defFile->getEntries();
 	loadedGroup = group;
 
-	if (group == -1)
+	// If no group was specified, then load all groups
+	if(!group)
 	{
 		for(std::map<size_t, size_t>::iterator group = entries.begin(); group != entries.end(); ++group)
 			for(size_t frame = 0; frame < group->second; frame++)
 				images[group->first][frame] = new anim(defFile, frame, group->first);
 	}
+	// Load the specified group
 	else
 	{
-		if(vstd::contains(entries, group))
+		if(vstd::contains(entries, *group))
 		{
-			for(size_t frame = 0; frame < entries[group]; frame++)
-				images[group][frame] = new anim(defFile, frame, group);
+			for(size_t frame = 0; frame < entries[*group]; frame++)
+				images[*group][frame] = new anim(defFile, frame, *group);
 		}
 	}
 
@@ -87,7 +89,7 @@ void CImageBasedAnimation::constructImageBasedAnimation(const CDefFile * defFile
 void CImageBasedAnimation::forEach(std::function<void(IImage *)> func)
 {
 	// recolor all groups
-	if(loadedGroup == -1)
+	if(loadedGroup == boost::none)
 	{
 		for(group_it it = images.begin(); it != images.end(); ++it)
 		{
@@ -101,7 +103,7 @@ void CImageBasedAnimation::forEach(std::function<void(IImage *)> func)
 	else
 	{
 		// recolor loaded group
-		group_it it = images.find(loadedGroup);
+		group_it it = images.find(*loadedGroup);
 		assert(it != images.end());
 
 		for(frame_it it2 = it->second.begin(); it2 != it->second.end(); ++it2)
@@ -136,7 +138,7 @@ void CImageBasedAnimation::recolorToPlayer(int player)
 	});
 }
 
-CCompAnimation::CCompAnimation(const CDefFile * defFile, size_t group /*= -1*/) : glowType(EGlowAnimationType::NONE),
+CCompAnimation::CCompAnimation(const CDefFile * defFile, boost::optional<size_t> group /*= boost::none*/) : glowType(EGlowAnimationType::NONE),
 		glowIntensity(0), alpha(255), rotateFlipType(ERotateFlipType::NONE)
 {
 	constructImageBasedAnimation<CCompImage>(defFile, group);
@@ -170,7 +172,7 @@ void CCompAnimation::rotateFlip(ERotateFlipType::ERotateFlipType type)
 	this->rotateFlipType = type;
 }
 
-CSDLAnimation::CSDLAnimation(const CDefFile * defFile, size_t group /*= -1*/)
+CSDLAnimation::CSDLAnimation(const CDefFile * defFile, boost::optional<size_t> group /*= boost::none*/)
 {
 	constructImageBasedAnimation<CSDLImage>(defFile, group);
 }
@@ -365,8 +367,28 @@ CAnimationHolder::CAnimationHolder(IAnimation * animation)
 	: anim(animation), currentGroup(0), currentFrame(0), glowType(EGlowAnimationType::NONE), 
 	glowIntensity(MIN_GLOW_INTENSITY)
 {
-	size_t loadedGroup = animation->getLoadedGroup();
-	setGroup(loadedGroup == -1 ? 0 : loadedGroup);
+	boost::optional<size_t> loadedGroup = animation->getLoadedGroup();
+	setGroup(loadedGroup == boost::none ? 0 : *loadedGroup);
+}
+
+CAnimationHolder::CAnimationHolder(const CAnimationHolder & cpy)
+{
+	*this = cpy;
+}
+
+CAnimationHolder & CAnimationHolder::operator=(const CAnimationHolder & cpy)
+{
+	anim = cpy.anim->clone();
+	currentGroup = cpy.currentGroup;
+	currentFrame = cpy.currentFrame;
+	frameCount = cpy.frameCount;
+	currentTime = cpy.currentTime;
+	glowTime = cpy.glowTime;
+	repeat = cpy.repeat;
+	glowType = cpy.glowType;
+	glowIntensity = cpy.glowIntensity;
+
+	return *this;
 }
 
 CAnimationHolder::~CAnimationHolder()
@@ -389,16 +411,16 @@ void CAnimationHolder::setGroup(size_t group, bool repeat /*= false*/)
 	this->repeat = repeat;
 	std::map<size_t, size_t> entries = anim->getEntries();
 
-	// check if the group is loaded
-	if(anim->getLoadedGroup() != group && anim->getLoadedGroup() != -1)
-	{
-		tlog2 << "Group Nr. " << group << " couldn't be loaded." << std::endl;
-		return;
-	}
-
-	// check if the group nr is defined in the animation format
+	// Validate whether the group is defined in the animation format
 	if(vstd::contains(entries, group))
 	{
+		// Validate whether the group is loaded
+		if(anim->getLoadedGroup() != boost::none && *anim->getLoadedGroup() != group)
+		{
+			tlog2 << "Group Nr. " << group << " isn't loaded." << std::endl;
+			return;
+		}
+
 		frameCount = entries[group];
 		currentTime = 0.0;
 		currentGroup = group;
@@ -472,6 +494,7 @@ void CAnimationHolder::setGlowAnimation(EGlowAnimationType::EGlowAnimationType g
 {
 	glowTime = 0.0;
 	this->glowType = glowType;
+	anim->setGlowAnimation(glowType, 0);
 }
 
 void CAnimationHolder::setAlpha(ui8 alpha)

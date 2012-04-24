@@ -603,6 +603,9 @@ CCompImage::CCompImage(const CDefFile * defFile, size_t frame, size_t group)
 {
 	CCompImageLoader loader(this);
 	defFile->loadFrame(frame, group, loader);
+
+	glowPalette = new SDL_Color[3];
+	std::copy(palette + 5, palette + 8, glowPalette);
 }
 
 CCompImage::CCompImage(const CCompImage & cpy)
@@ -617,20 +620,16 @@ CCompImage & CCompImage::operator=(const CCompImage & cpy)
 	sprite = cpy.sprite;
 
 	palette = new SDL_Color[256];
-	memcpy(reinterpret_cast<void *>(palette), 
-		reinterpret_cast<void *>(cpy.palette), 256 * sizeof(SDL_Color));
+	std::copy(cpy.palette, cpy.palette + 256, palette);
 
 	glowPalette = new SDL_Color[3];
-		memcpy(reinterpret_cast<void *>(glowPalette),
-			reinterpret_cast<void *>(cpy.glowPalette + 5 * sizeof(SDL_Color)), 3 * sizeof(SDL_Color));
+	std::copy(cpy.glowPalette, cpy.glowPalette + 3, glowPalette);
 
 	surf = reinterpret_cast<ui8 *>(malloc(length));
-	memcpy(reinterpret_cast<void *>(surf), 
-		reinterpret_cast<void *>(cpy.surf), length);
+	std::copy(cpy.surf, cpy.surf + length, surf);
 
 	line = new ui32[sprite.h + 1];
-	memcpy(reinterpret_cast<void *>(line), 
-		reinterpret_cast<void *>(cpy.line), (sprite.h + 1) * sizeof(ui32));
+	std::copy(cpy.line, cpy.line + sprite.h + 1, line);
 
 	return *this;
 }
@@ -643,7 +642,6 @@ IImage * CCompImage::clone() const
 CCompImage::~CCompImage()
 {
 	free(surf);
-	delete [] glowPalette;
 	delete [] line;
 	delete [] palette;
 }
@@ -829,51 +827,44 @@ void CCompImage::recolorToPlayer(int player)
 	else
 		assert(0);
 
-	for(size_t i = 0; i < 32; ++i)
-	{
-		palette[224 + i].r = pal[i].r;
-		palette[224 + i].g = pal[i].g;
-		palette[224 + i].b = pal[i].b;
-		palette[224 + i].unused = pal[i].unused;
-	}
+	std::copy(pal, pal + 32, palette + 224);
 }
 
 void CCompImage::setGlowAnimation(EGlowAnimationType::EGlowAnimationType glowType, ui8 intensity)
 {
-	// Init the glow palette for the first time
-	if (glowPalette == NULL)
-	{
-		glowPalette = new SDL_Color[3];
-		memcpy(reinterpret_cast<void *>(glowPalette),
-			reinterpret_cast<void *>(palette + 5 * sizeof(SDL_Color)), 3 * sizeof(SDL_Color));
-	}
-
 	if (glowType == EGlowAnimationType::BLUE)
 	{
-		for (size_t i = 5; i < 8; ++i)
+		palette[5].r = glowPalette[0].b;
+		palette[5].g = intensity - glowPalette[0].g;
+		palette[5].b = intensity - glowPalette[0].r;
+		palette[5].unused = 255;
+
+		for (size_t i = 6; i <= 7; ++i)
 		{
-			palette[i].r = (i == 5) ? glowPalette[i].b : 0;
-			palette[i].g = (i == 5) ? (intensity - glowPalette[i].g) : intensity;
-			palette[i].b = (i == 5) ? (intensity - glowPalette[i].r) : intensity;
+			palette[i].r = 0;
+			palette[i].g = intensity;
+			palette[i].b = intensity;
+			palette[i].unused = 255;
 		}
 	}
 	else if (glowType == EGlowAnimationType::YELLOW)
 	{
-		for (size_t i = 5; i < 8; ++i)
+		palette[5].r = intensity - glowPalette[0].r;
+		palette[5].g = intensity - glowPalette[0].g;
+		palette[5].b = glowPalette[0].b;
+		palette[5].unused = 255;
+
+		for (size_t i = 6; i <= 7; ++i)
 		{
-			palette[i].r = (i == 5) ? (intensity - glowPalette[i].r) : intensity;
-			palette[i].g = (i == 5) ? (intensity - glowPalette[i].g) : intensity;
-			palette[i].b = (i == 5) ? glowPalette[i].b : 0;
+			palette[i].r = intensity;
+			palette[i].g = intensity;
+			palette[i].b = 0;
+			palette[i].unused = 255;
 		}
 	}
 	else if (glowType == EGlowAnimationType::NONE)
 	{
-		for (size_t i = 5; i < 8; ++i)
-		{
-			palette[i].r = glowPalette[i].r;
-			palette[i].g = glowPalette[i].g;
-			palette[i].b = glowPalette[i].b;
-		}
+		std::copy(glowPalette, glowPalette + 3, palette + 5);
 	}
 }
 

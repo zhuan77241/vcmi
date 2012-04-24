@@ -25,8 +25,8 @@ protected:
 	std::map<size_t, size_t> entries;
 	Point pos;
 
-	// Positive value for the loaded group. -1 if all groups are loaded.
-	size_t loadedGroup;
+	/** Contains the number of the loaded group. */
+	boost::optional<size_t> loadedGroup;
 
 public:
 	IAnimation();
@@ -37,7 +37,7 @@ public:
 	std::map<size_t, size_t> getEntries() const;
 
 	// Gets the index of the loaded group. -1 if all groups are loaded.
-	si8 getLoadedGroup() const;
+	boost::optional<size_t> getLoadedGroup() const;
 
 	virtual void draw(size_t frame, size_t group) const =0;
 
@@ -62,7 +62,7 @@ protected:
 	~CImageBasedAnimation();
 
 	template<typename anim>
-	void constructImageBasedAnimation(const CDefFile * defFile, size_t group /*= -1*/);
+	void constructImageBasedAnimation(const CDefFile * defFile, boost::optional<size_t> group = boost::none);
 
 public:
 	void forEach(std::function<void(IImage *)> func);
@@ -81,7 +81,7 @@ class CCompAnimation : public CImageBasedAnimation
 	ERotateFlipType::ERotateFlipType rotateFlipType;
 
 public:
-	CCompAnimation(const CDefFile * defFile, size_t group = -1);
+	CCompAnimation(const CDefFile * defFile, boost::optional<size_t> group = boost::none);
 	IAnimation * clone() const;
 
 	void applyTransformations(IImage * img) const;
@@ -93,7 +93,7 @@ public:
 class CSDLAnimation : public CImageBasedAnimation
 {
 public:
-	CSDLAnimation(const CDefFile * defFile, size_t group = -1);
+	CSDLAnimation(const CDefFile * defFile, boost::optional<size_t> group = boost::none);
 	IAnimation * clone() const;
 
 	void rotateFlip(ERotateFlipType::ERotateFlipType type);
@@ -141,6 +141,8 @@ class CAnimationHolder
 
 public:
 	explicit CAnimationHolder(IAnimation * animation);
+	CAnimationHolder(const CAnimationHolder & cpy);
+	CAnimationHolder & operator=(const CAnimationHolder & cpy);
 	~CAnimationHolder();
 
 	void setGroup(size_t group, bool repeat = false);

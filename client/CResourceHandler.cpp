@@ -10,7 +10,7 @@
 IImage * CResourceHandler::getImage(const std::string & name, size_t frame, size_t group)
 {
 	ResourceLocator loc = CGI->filesystemh->getResourceLocator(ResourceIdentifier(name, EResType::ANIMATION));
-	return loadImage(loc, frame, group);
+	return loadImage(loc, boost::make_optional(frame), boost::make_optional(group));
 }
 
 IImage * CResourceHandler::getImage(const std::string & name)
@@ -22,16 +22,16 @@ IImage * CResourceHandler::getImage(const std::string & name)
 CSDLImage * CResourceHandler::getSurface(const std::string & name)
 {
 	ResourceLocator loc = CGI->filesystemh->getResourceLocator(ResourceIdentifier(name, EResType::GRAPHICS));
-	return dynamic_cast<CSDLImage *>(loadImage(loc, -1, -1, true));
+	return dynamic_cast<CSDLImage *>(loadImage(loc, boost::none, boost::none, true));
 }
 
 CSDLImage * CResourceHandler::getSurface(const std::string & name, size_t frame, size_t group)
 {
 	ResourceLocator loc = CGI->filesystemh->getResourceLocator(ResourceIdentifier(name, EResType::ANIMATION));
-	return dynamic_cast<CSDLImage *>(loadImage(loc, frame, group, true));
+	return dynamic_cast<CSDLImage *>(loadImage(loc, boost::make_optional(frame), boost::make_optional(group), true));
 }
 
-IImage * CResourceHandler::loadImage(const ResourceLocator & loc, size_t frame /*= -1*/, size_t group /*= -1*/, bool useSDL /*= false*/)
+IImage * CResourceHandler::loadImage(const ResourceLocator & loc, boost::optional<size_t> frame /*= boost::none*/, boost::optional<size_t> group /*= boost::none*/, bool useSDL /*= false*/)
 {
 	// Load data stream
 	CMemoryStream * data = CGI->filesystemh->getResource(loc);
@@ -53,15 +53,17 @@ IImage * CResourceHandler::loadImage(const ResourceLocator & loc, size_t frame /
 		// Construct the .DEF animation format
 		CDefFile defFile(data);
 
+		assert(frame && group);
+
 		// always use CCompImage when loading from DEF file
 		// we keep the possibility to load via SDL image
 		static const bool useComp = true;
 
 		if (useComp)
-			return new CCompImage(&defFile, frame, group);
+			return new CCompImage(&defFile, *frame, *group);
 
 		else
-			return new CSDLImage(&defFile, frame, group);
+			return new CSDLImage(&defFile, *frame, *group);
 	}
 	else
 	{
@@ -69,19 +71,13 @@ IImage * CResourceHandler::loadImage(const ResourceLocator & loc, size_t frame /
 	}
 }
 
-CAnimationHolder * CResourceHandler::getAnimation(const std::string & name)
-{
-	ResourceLocator loc = CGI->filesystemh->getResourceLocator(ResourceIdentifier(name, EResType::ANIMATION));
-	return new CAnimationHolder(loadAnimation(loc));
-}
-
-CAnimationHolder * CResourceHandler::getAnimation(const std::string & name, size_t group)
+CAnimationHolder * CResourceHandler::getAnimation(const std::string & name, boost::optional<size_t> group /*= boost::none*/)
 {
 	ResourceLocator loc = CGI->filesystemh->getResourceLocator(ResourceIdentifier(name, EResType::ANIMATION));
 	return new CAnimationHolder(loadAnimation(loc, group));
 }
 
-IAnimation * CResourceHandler::loadAnimation(const ResourceLocator & loc, size_t group /*= -1*/)
+IAnimation * CResourceHandler::loadAnimation(const ResourceLocator & loc, boost::optional<size_t> group /*= boost::none*/)
 {
 	CMemoryStream * data = CGI->filesystemh->getResource(loc);
 

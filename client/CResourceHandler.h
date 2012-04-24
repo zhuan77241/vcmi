@@ -20,8 +20,8 @@ class CSDLImage;
 
 class CResourceHandler
 {
-	IImage * loadImage(const ResourceLocator & loc, size_t frame = -1, size_t group = -1, bool useSDL = false);
-	IAnimation * loadAnimation(const ResourceLocator & loc, size_t group = -1);
+	IImage * loadImage(const ResourceLocator & loc, boost::optional<size_t> frame = boost::none, boost::optional<size_t> group = boost::none, bool useSDL = false);
+	IAnimation * loadAnimation(const ResourceLocator & loc, boost::optional<size_t> group = boost::none);
 
 public:
 
@@ -35,9 +35,12 @@ public:
 
 	CSDLImage * getSurface(const std::string & name, size_t frame, size_t group);
 
-	// Loads complete animation(all groups).
-	CAnimationHolder * getAnimation(const std::string & name);
-
-	// Loads a group of an animation.
-	CAnimationHolder * getAnimation(const std::string & name, size_t group);
+	/**
+	 * Gets and loads an animation.
+	 *
+	 * @param name The resource name of the animation(no path or file extensions, only name)
+	 * @param group If you wan't to load one animation group only then pass the number. Leave empty to load all groups.
+	 * @return An object of type CAnimationHolder which provides functionality to show a time-based animation.
+	 */
+	CAnimationHolder * getAnimation(const std::string & name, boost::optional<size_t> group = boost::none);
 };

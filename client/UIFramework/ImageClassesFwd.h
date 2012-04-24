@@ -45,52 +45,6 @@ namespace ERotateFlipType
 	};
 }
 
-struct GraphicsSelector
-{
-	si8 frame, group;
-
-	GraphicsSelector(si8 Group = -1, si8 Frame = 0) : frame(Frame), group(Group) { };
-
-	inline bool operator==(GraphicsSelector const & other) const
-	{
-		return frame == other.frame && group == other.group;
-	}
-
-	inline friend std::size_t hash_value(GraphicsSelector const & p)
-	{
-		std::size_t seed = 0;
-		boost::hash_combine(seed, p.frame);
-		boost::hash_combine(seed, p.group);
-
-		return seed;
-	}
-};
-
-struct GraphicsLocator : public ResourceLocator
-{
-	GraphicsSelector sel;
-
-	GraphicsLocator() : ResourceLocator() { };
-	GraphicsLocator(IResourceLoader * Loader, const std::string & ResourceName, const GraphicsSelector & Sel) 
-		: ResourceLocator(Loader, ResourceName), sel(Sel) { };
-
-	inline bool operator==(GraphicsLocator const & other) const
-	{
-		return loader == other.loader && resourceName == other.resourceName
-			&& sel == other.sel;
-	}
-
-	inline friend std::size_t hash_value(GraphicsLocator const & p)
-	{
-		std::size_t seed = 0;
-		boost::hash_combine(seed, p.loader);
-		boost::hash_combine(seed, p.resourceName);
-		boost::hash_combine(seed, p.sel);
-
-		return seed;
-	}
-};
-
 /*
  * Interface for VCMI related graphics tasks like player coloring
  */
