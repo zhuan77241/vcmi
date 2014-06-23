@@ -195,6 +195,7 @@ protected:
 	MetaString onEmpty;
 
 	/// sound that will be played alongside with *any* message
+	/// FIXME: it seems that sound should be connected to messages
 	ui16 soundID;
 	/// how reward will be selected, uses ESelectMode enum
 	ui8 selectMode;
@@ -210,6 +211,8 @@ protected:
 	bool canRefuse;
 
 public:
+	void initObj() override;
+
 	void setPropertyDer(ui8 what, ui32 val) override;
 	std::string getHoverText(PlayerColor player) const override;
 	std::string getHoverText(const CGHeroInstance * hero) const override;
@@ -245,19 +248,6 @@ public:
 
 	// for configuration/object setup
 	friend class CRandomRewardObjectInfo;
-};
-
-class DLL_LINKAGE CGPickable : public CRewardableObject //campfire, treasure chest, Flotsam, Shipwreck Survivor, Sea Chest
-{
-public:
-	void initObj() override;
-
-	CGPickable();
-
-	template <typename Handler> void serialize(Handler &h, const int version)
-	{
-		h & static_cast<CRewardableObject&>(*this);
-	}
 };
 
 class DLL_LINKAGE CGBonusingObject : public CRewardableObject //objects giving bonuses to luck/morale/movement

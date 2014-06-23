@@ -110,6 +110,8 @@ void CRandomRewardObjectInfo::configureObject(CRewardableObject * object, CRando
 		info.reward.spells = JsonRandom::loadSpells(reward["spells"], rng, spells);
 		info.reward.creatures = JsonRandom::loadCreatures(reward["creatures"], rng);
 
+		info.reward.removeObject = reward["removeObject"].Bool();
+
 		info.message = loadMessage(reward["message"]);
 		info.selectChance = JsonRandom::loadValue(reward["selectChance"], rng);
 	}
@@ -118,7 +120,11 @@ void CRandomRewardObjectInfo::configureObject(CRewardableObject * object, CRando
 	object->onVisited = loadMessage(parameters["onVisitedMessage"]);
 	object->onEmpty   = loadMessage(parameters["onEmptyMessage"]);
 
-	//TODO: visitMode and selectMode
+	std::string selectModes[] = { "first", "player", "random" };
+	std::string visitModes[]  = { "unlimited", "once", "hero", "player" };
+
+	object->selectMode = vstd::find_pos(selectModes, parameters["selectMode"].String());
+	object->visitMode  = vstd::find_pos( visitModes, parameters["visitMode"].String());
 
 	object->soundID = parameters["soundID"].Float();
 	object->resetDuration = parameters["resetDuration"].Float();
