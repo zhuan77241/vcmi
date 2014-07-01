@@ -304,7 +304,6 @@ CGeneralTextHandler::CGeneralTextHandler()
 	readToVector("DATA/HALLINFO.TXT", hcommands);
 	readToVector("DATA/CASTINFO.TXT", fcommands);
 	readToVector("DATA/ADVEVENT.TXT", advobtxt);
-	readToVector("DATA/XTRAINFO.TXT", xtrainfo);
 	readToVector("DATA/RESTYPES.TXT", restypes);
 	readToVector("DATA/TERRNAME.TXT", terrainNames);
 	readToVector("DATA/RANDSIGN.TXT", randsign);

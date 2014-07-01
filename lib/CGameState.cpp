@@ -178,9 +178,6 @@ void MetaString::getLocalString(const std::pair<ui8,ui32> &txt, std::string &dst
 		case GENERAL_TXT:
 			vec = &VLC->generaltexth->allTexts;
 			break;
-		case XTRAINFO_TXT:
-			vec = &VLC->generaltexth->xtrainfo;
-			break;
 		case RES_NAMES:
 			vec = &VLC->generaltexth->restypes;
 			break;

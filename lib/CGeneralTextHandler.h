@@ -118,7 +118,6 @@ public:
 	std::vector<std::string> creGens; //names of creatures' generators
 	std::vector<std::string> creGens4; //names of multiple creatures' generators
 	std::vector<std::string> advobtxt;
-	std::vector<std::string> xtrainfo;
 	std::vector<std::string> restypes; //names of resources
 	std::vector<std::string> terrainNames;
 	std::vector<std::string> randsign;
